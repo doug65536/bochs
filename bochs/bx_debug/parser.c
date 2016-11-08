@@ -3734,7 +3734,7 @@ yyreduce:
 
   case 241:
 #line 1264 "parser.y" /* yacc.c:1646  */
-    { (yyval.uval) = bx_dbg_get_instruction_pointer(); }
+    { (yyval.uval) = bx_dbg_get_rip(); }
 #line 3739 "y.tab.c" /* yacc.c:1646  */
     break;
 
@@ -3878,7 +3878,7 @@ yyreduce:
 
   case 265:
 #line 1293 "parser.y" /* yacc.c:1646  */
-    { (yyval.uval) = bx_dbg_get_instruction_pointer(); }
+    { (yyval.uval) = bx_dbg_get_rip(); }
 #line 3883 "y.tab.c" /* yacc.c:1646  */
     break;
 

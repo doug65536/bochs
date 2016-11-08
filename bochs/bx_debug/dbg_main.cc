@@ -1172,7 +1172,7 @@ void bx_dbg_info_registers_command(int which_regs_mask)
     dbg_printf("r14: %08x_%08x ", GET32H(reg), GET32L(reg));
     reg = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_R15);
     dbg_printf("r15: %08x_%08x\n", GET32H(reg), GET32L(reg));
-    reg = bx_dbg_get_instruction_pointer();
+    reg = bx_dbg_get_rip();
     dbg_printf("rip: %08x_%08x\n", GET32H(reg), GET32L(reg));
 #endif
     reg = BX_CPU(dbg_cpu)->read_eflags();
@@ -3872,7 +3872,7 @@ Bit32u bx_dbg_get_eip(void)
   return BX_CPU(dbg_cpu)->get_eip();
 }
 
-bx_address bx_dbg_get_instruction_pointer(void)
+bx_address bx_dbg_get_rip(void)
 {
   return BX_CPU(dbg_cpu)->get_instruction_pointer();
 }

@@ -1261,7 +1261,7 @@ vexpression:
    | BX_TOKEN_SEGREG                 { $$ = bx_dbg_get_selector_value($1); }
    | BX_TOKEN_REG_IP                 { $$ = bx_dbg_get_ip (); }
    | BX_TOKEN_REG_EIP                { $$ = bx_dbg_get_eip(); }
-   | BX_TOKEN_REG_RIP                { $$ = bx_dbg_get_instruction_pointer(); }
+   | BX_TOKEN_REG_RIP                { $$ = bx_dbg_get_rip(); }
    | vexpression '+' vexpression     { $$ = $1 + $3; }
    | vexpression '-' vexpression     { $$ = $1 - $3; }
    | vexpression '*' vexpression     { $$ = $1 * $3; }
@@ -1290,7 +1290,7 @@ expression:
    | BX_TOKEN_SEGREG                 { $$ = bx_dbg_get_selector_value($1); }
    | BX_TOKEN_REG_IP                 { $$ = bx_dbg_get_ip (); }
    | BX_TOKEN_REG_EIP                { $$ = bx_dbg_get_eip(); }
-   | BX_TOKEN_REG_RIP                { $$ = bx_dbg_get_instruction_pointer(); }
+   | BX_TOKEN_REG_RIP                { $$ = bx_dbg_get_rip(); }
    | expression ':' expression       { $$ = bx_dbg_get_laddr ($1, $3); }
    | expression '+' expression       { $$ = $1 + $3; }
    | expression '-' expression       { $$ = $1 - $3; }
