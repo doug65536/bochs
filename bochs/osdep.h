@@ -116,11 +116,13 @@ extern "C" {
 
 #else    /* not WIN32 definitions */
 #if SIZEOF_UNSIGNED_LONG == 8
+#define FMT_64 "l"
 #define FMT_LL "%l"
 #define FMT_TICK "%011lu"
 #define FMT_ADDRX64 "%016lx"
 #define FMT_PHY_ADDRX64 "%012lx"
 #else
+#define FMT_64 "ll"
 #define FMT_LL "%ll"
 #define FMT_TICK "%011llu"
 #define FMT_ADDRX64 "%016llx"

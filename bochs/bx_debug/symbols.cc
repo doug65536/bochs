@@ -385,10 +385,7 @@ void bx_dbg_info_symbols_command(const char *symbol)
     else {
       for(;iter!=rsyms->end() && bx_dbg_strprefix(probe.name, (*iter)->name);++iter) {
 #if BX_SUPPORT_X86_64 && (BX_HAVE_STRTOULL || BX_HAVE_STRTOUQ)
-        if (sizeof(long) == 8)
-            dbg_printf ("%16lx: %s\n", (*iter)->start, (*iter)->name);
-        else
-            dbg_printf ("%16llx: %s\n", (*iter)->start, (*iter)->name);
+        dbg_printf (FMT_ADDRX64 ": %s\n", (*iter)->start, (*iter)->name);
 #else
         dbg_printf ("%08x: %s\n", (*iter)->start, (*iter)->name);
 #endif
