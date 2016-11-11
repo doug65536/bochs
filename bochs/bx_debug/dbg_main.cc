@@ -2652,8 +2652,13 @@ void bx_dbg_examine_command(const char *command, const char *format, bx_bool for
         dbg_printf("\n");
       if (memory_dump)
         dbg_printf("0x" FMT_ADDRX ":", addr);
-      else
-        dbg_printf("0x" FMT_ADDRX " <bogus+%8u>:", addr, offset);
+      else {
+        const char *Sym=bx_dbg_disasm_symbolic_address(addr + offset, 0);
+        if (Sym)
+          dbg_printf("0x" FMT_ADDRX " <%s>:", addr, Sym);
+        else
+          dbg_printf("0x" FMT_ADDRX " <bogus+%8u>:", addr, offset);
+      }
       columns = 1;
     }
 
