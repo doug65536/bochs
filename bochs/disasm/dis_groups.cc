@@ -666,7 +666,6 @@ void disassembler::Jb(const x86_insn *insn)
   if (insn->is_64) {
     Bit64u imm64 = (Bit8s) imm8;
     sym = GET_SYMBOL(db_eip + imm64);
-    printf("\nGot symbol db_eip=" FMT_ADDRX64 " db_cs_base=" FMT_ADDRX64 " imm64=" FMT_ADDRX64 "\n", db_eip, db_cs_base, imm64);
     sym = sym ? sym : "<unknown1>";
 
     if (offset_mode_hex) {
