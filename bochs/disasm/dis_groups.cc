@@ -30,7 +30,7 @@
 
 #if BX_DEBUGGER
 #define SYMBOLIC_JUMP(fmt)  fmt " (%s)"
-#define GET_SYMBOL(addr) bx_dbg_disasm_symbolic_address(addr, 0)
+#define GET_SYMBOL(addr) bx_dbg_disasm_symbolic_address((addr), 0)
 #else
 #define SYMBOLIC_JUMP(fmt)  fmt "%s"
 #define GET_SYMBOL(addr) ""
@@ -665,8 +665,9 @@ void disassembler::Jb(const x86_insn *insn)
 
   if (insn->is_64) {
     Bit64u imm64 = (Bit8s) imm8;
-    sym = GET_SYMBOL(db_cs_base + db_eip + imm64);
-    sym = sym ? sym : "<unknown>";
+    sym = GET_SYMBOL(db_eip + imm64);
+    printf("\nGot symbol db_eip=" FMT_ADDRX64 " db_cs_base=" FMT_ADDRX64 " imm64=" FMT_ADDRX64 "\n", db_eip, db_cs_base, imm64);
+    sym = sym ? sym : "<unknown1>";
 
     if (offset_mode_hex) {
       dis_sprintf(SYMBOLIC_JUMP(".+0x" FMT_ADDRX64), imm64, sym);
@@ -677,7 +678,7 @@ void disassembler::Jb(const x86_insn *insn)
 
     if (db_cs_base != BX_JUMP_TARGET_NOT_REQ) {
       Bit64u target = db_eip + imm64;
-      target += db_cs_base;
+      //target += db_cs_base;
       dis_sprintf(" (0x" FMT_ADDRX64 ")", target);
     }
 
@@ -687,7 +688,7 @@ void disassembler::Jb(const x86_insn *insn)
   if (insn->os_32) {
     Bit32u imm32 = (Bit8s) imm8;
     sym = GET_SYMBOL(db_cs_base + db_eip + imm32);
-    sym = sym ? sym : "<unknown>";
+    sym = sym ? sym : "<unknown2>";
 
     if (offset_mode_hex) {
       dis_sprintf(SYMBOLIC_JUMP(".+0x%08x"), (unsigned) imm32, sym);
@@ -705,7 +706,7 @@ void disassembler::Jb(const x86_insn *insn)
   else {
     Bit16u imm16 = (Bit8s) imm8;
     sym = GET_SYMBOL(db_eip + imm16);
-    sym = sym ? sym : "<unknown>";
+    sym = sym ? sym : "<unknown3>";
 
     if (offset_mode_hex) {
       dis_sprintf(SYMBOLIC_JUMP(".+0x%04x"), (unsigned) imm16, sym);
@@ -730,7 +731,7 @@ void disassembler::Jw(const x86_insn *insn)
   const char *sym;
 
   sym = GET_SYMBOL(db_eip + imm16);
-  sym = sym ? sym : "<unknown>";
+  sym = sym ? sym : "<unknown4>";
   if (offset_mode_hex) {
     dis_sprintf(SYMBOLIC_JUMP(".+0x%04x"),
         (unsigned) (Bit16u) imm16, sym);
@@ -753,8 +754,8 @@ void disassembler::Jd(const x86_insn *insn)
 
   if (insn->is_64) {
     Bit64u imm64 = (Bit32s) imm32;
-    sym = GET_SYMBOL(db_cs_base + db_eip + imm64);
-    sym = sym ? sym : "<unknown>";
+    sym = GET_SYMBOL(db_eip + imm64);
+    sym = sym ? sym : "<unknown5>";
 
     if (offset_mode_hex) {
       dis_sprintf(SYMBOLIC_JUMP(".+0x" FMT_ADDRX64),
@@ -765,7 +766,7 @@ void disassembler::Jd(const x86_insn *insn)
     }
 
     if (db_cs_base != BX_JUMP_TARGET_NOT_REQ) {
-      Bit64u target = db_cs_base + db_eip + (Bit64s) imm64;
+      Bit64u target = db_eip + (Bit64s) imm64;
       dis_sprintf(" (0x" FMT_ADDRX64 ")", target);
     }
 
@@ -773,7 +774,7 @@ void disassembler::Jd(const x86_insn *insn)
   }
 
   sym = GET_SYMBOL(db_cs_base + db_eip + imm32);
-  sym = sym ? sym : "<unknown>";
+  sym = sym ? sym : "<unknown6>";
   if (offset_mode_hex) {
     dis_sprintf(SYMBOLIC_JUMP(".+0x%08x"), (unsigned) imm32, sym);
   }

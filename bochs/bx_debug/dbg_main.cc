@@ -2384,16 +2384,21 @@ void bx_dbg_info_bpoints_command(void)
 // Num Type           Disp Enb Address    What
 // 1   breakpoint     keep y   0x00010664 in main at temp.c:7
 
-  dbg_printf("Num Type           Disp Enb Address\n");
+  const char *sym;
+
+  dbg_printf("Num Type           Disp Enb Sym\n");
 #if (BX_DBG_MAX_VIR_BPOINTS > 0)
   for (i=0; i<bx_guard.iaddr.num_virtual; i++) {
     dbg_printf("%3u ", bx_guard.iaddr.vir[i].bpoint_id);
     dbg_printf("vbreakpoint    ");
     dbg_printf("keep ");
     dbg_printf(bx_guard.iaddr.vir[i].enabled?"y   ":"n   ");
-    dbg_printf("0x%04x:" FMT_ADDRX "\n",
+    dbg_printf("0x%04x:" FMT_ADDRX " ",
                   bx_guard.iaddr.vir[i].cs,
                   bx_guard.iaddr.vir[i].eip);
+    sym = bx_dbg_disasm_symbolic_address(bx_guard.iaddr.vir[i].eip, 0);
+    sym = sym ? sym : "<unknown>";
+    dbg_printf("(%s)\n", sym);
   }
 #endif
 
@@ -2403,7 +2408,10 @@ void bx_dbg_info_bpoints_command(void)
     dbg_printf("lbreakpoint    ");
     dbg_printf("keep ");
     dbg_printf(bx_guard.iaddr.lin[i].enabled?"y   ":"n   ");
-    dbg_printf("0x" FMT_ADDRX "\n", bx_guard.iaddr.lin[i].addr);
+    dbg_printf("0x" FMT_ADDRX " ", bx_guard.iaddr.lin[i].addr);
+    sym = bx_dbg_disasm_symbolic_address(bx_guard.iaddr.lin[i].addr, 0);
+    sym = sym ? sym : "<unknown>";
+    dbg_printf("(%s)\n", sym);
   }
 #endif
 
@@ -2413,7 +2421,10 @@ void bx_dbg_info_bpoints_command(void)
     dbg_printf("pbreakpoint    ");
     dbg_printf("keep ");
     dbg_printf(bx_guard.iaddr.phy[i].enabled?"y   ":"n   ");
-    dbg_printf("0x" FMT_PHY_ADDRX "\n", bx_guard.iaddr.phy[i].addr);
+    dbg_printf("0x" FMT_PHY_ADDRX " ", bx_guard.iaddr.phy[i].addr);
+    sym = bx_dbg_disasm_symbolic_address(bx_guard.iaddr.phy[i].addr, 0);
+    sym = sym ? sym : "<unknown>";
+    dbg_printf("(%s)\n", sym);
   }
 #endif
 }
@@ -3017,7 +3028,7 @@ void bx_dbg_disassemble_command(const char *format, Bit64u from, Bit64u to)
     if (! bx_dbg_read_linear(dbg_cpu, from, 16, bx_disasm_ibuf)) break;
 
     unsigned ilen = bx_disassemble.disasm(dis_size==32, dis_size==64,
-       (bx_address)(-1), (bx_address)(-1), bx_disasm_ibuf, bx_disasm_tbuf);
+       0/*(bx_address)(-1)*/, from/*(bx_address)(-1)*/, bx_disasm_ibuf, bx_disasm_tbuf);
 
     const char *Sym=bx_dbg_disasm_symbolic_address(from, 0);
 
