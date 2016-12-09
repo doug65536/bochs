@@ -26,9 +26,6 @@
 
 #if BX_DEBUGGER
 #include "../bx_debug/debug.h"
-#endif
-
-#if BX_DEBUGGER
 #define SYMBOLIC_JUMP(fmt)  fmt " (%s)"
 #define GET_SYMBOL(addr) bx_dbg_disasm_symbolic_address((addr), 0)
 #else
@@ -741,8 +738,7 @@ void disassembler::Jw(const x86_insn *insn)
 
   if (db_cs_base != BX_JUMP_TARGET_NOT_REQ) {
     Bit16u target = (db_eip + imm16) & 0xffff;
-    dis_sprintf(SYMBOLIC_JUMP(" (0x%08x)"),
-        target + db_cs_base);
+    dis_sprintf(" (0x%08x)", target + db_cs_base);
   }
 }
 
@@ -778,7 +774,7 @@ void disassembler::Jd(const x86_insn *insn)
     dis_sprintf(SYMBOLIC_JUMP(".+0x%08x"), (unsigned) imm32, sym);
   }
   else {
-    dis_sprintf(SYMBOLIC_JUMP(".%+d"), (int) imm32);
+    dis_sprintf(SYMBOLIC_JUMP(".%+d"), (int) imm32, sym);
   }
 
   if (db_cs_base != BX_JUMP_TARGET_NOT_REQ) {
