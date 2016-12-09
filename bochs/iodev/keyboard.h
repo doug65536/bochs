@@ -112,49 +112,59 @@ private:
       Bit8u   saved_mode;  // the mode prior to entering wrap mode
       bx_bool enable;
 
+      // For emulating mice with mouse wheel and five buttons
+      // OS will send 0xF3, 0xC8, 0xF3, 0xC8, 0xF3, 0x50
+      // and expect mouse ID to be 0x04 to detect 5 button
+      // mouse with wheel (Intellimouse Explorer compatible)
+      // OS will send 0xF3, 0xC8, 0xF3, 0x64, 0xF3, 0x50
+      // and expect mouse ID to be 0x03 to detect 3 button
+      // mouse with wheel (Intellimouse compatible)
+      Bit8u   magic_seq[3];
+      Bit8u   magic_len;
+      bx_bool emulate_5button;
+
       Bit8u get_status_byte ()
-	{
-	  // top bit is 0 , bit 6 is 1 if remote mode.
-	  Bit8u ret = (Bit8u) ((mode == MOUSE_MODE_REMOTE) ? 0x40 : 0);
-	  ret |= (enable << 5);
-	  ret |= (scaling == 1) ? 0 : (1 << 4);
-	  ret |= ((button_status & 0x1) << 2);
-	  ret |= ((button_status & 0x2) << 0);
-	  return ret;
-	}
+      {
+        // top bit is 0 , bit 6 is 1 if remote mode.
+        Bit8u ret = (Bit8u) ((mode == MOUSE_MODE_REMOTE) ? 0x40 : 0);
+        ret |= (enable << 5);
+        ret |= (scaling == 1) ? 0 : (1 << 4);
+        ret |= ((button_status & 0x1) << 2);
+        ret |= ((button_status & 0x2) << 0);
+        return ret;
+      }
 
       Bit8u get_resolution_byte ()
-	{
-	  Bit8u ret = 0;
+      {
+        Bit8u ret = 0;
 
-	  switch (resolution_cpmm) {
-	  case 1:
-	    ret = 0;
-	    break;
+        switch (resolution_cpmm) {
+        case 1:
+          ret = 0;
+          break;
 
-	  case 2:
-	    ret = 1;
-	    break;
+        case 2:
+          ret = 1;
+          break;
 
-	  case 4:
-	    ret = 2;
-	    break;
+        case 4:
+          ret = 2;
+          break;
 
-	  case 8:
-	    ret = 3;
-	    break;
+        case 8:
+          ret = 3;
+          break;
 
-	  default:
-	    genlog->panic("mouse: invalid resolution_cpmm");
-	  };
-	  return ret;
-	}
+        default:
+          genlog->panic("mouse: invalid resolution_cpmm");
+        };
+        return ret;
+      }
 
       Bit8u button_status;
       Bit16s delayed_dx;
       Bit16s delayed_dy;
       Bit16s delayed_dz;
-      Bit8u im_request;
       bx_bool im_mode;
     } mouse;
 
