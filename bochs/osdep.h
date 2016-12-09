@@ -49,11 +49,13 @@ extern "C" {
 // cygwin compiling with -mno-cygwin.  e.g. VC++.
 
 #if !defined(_MSC_VER)		// gcc without -mno-cygwin
+#define FMT_64 "ll"
 #define FMT_LL "%ll"
 #define FMT_TICK "%011llu"
 #define FMT_ADDRX64 "%016llx"
 #define FMT_PHY_ADDRX64 "%012llx"
 #else
+#define FMT_64 "I64"
 #define FMT_LL "%I64"
 #define FMT_TICK "%011I64u"
 #define FMT_ADDRX64 "%016I64x"
@@ -102,6 +104,7 @@ extern "C" {
 
 #else   /* __MINGW32__ defined */
 // Definitions for cygwin compiled with -mno-cygwin
+#define FMT_64 "I64"
 #define FMT_LL "%I64"
 #define FMT_TICK "%011I64u"
 #define FMT_ADDRX64 "%016I64x"
@@ -131,6 +134,8 @@ extern "C" {
 #endif   /* not WIN32 definitions */
 
 #define FMT_ADDRX32 "%08x"
+#define FMT_ADDRX16 "%04x"
+
 
 // Missing defines for open
 #ifndef S_IRUSR
