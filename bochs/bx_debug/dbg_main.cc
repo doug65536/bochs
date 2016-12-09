@@ -29,7 +29,6 @@ extern "C" {
 #include "iodev/iodev.h"
 
 #if BX_DEBUGGER
-
 #include "disasm/disasm.h"
 
 #define LOG_THIS genlog->
@@ -1112,6 +1111,44 @@ void bx_dbg_info_segment_regs_command(void)
       global_sreg.base, (unsigned) global_sreg.limit);
 }
 
+void bx_dbg_info_registers_command_output_32(int reg_num)
+{
+
+}
+
+
+static void bx_dbg_info_registers_command_output_64(
+    int reg_num, int symbolic)
+{
+  bx_address reg_val = BX_CPU(dbg_cpu)->get_reg64(reg_num);
+  const char *sym = symbolic
+      ? bx_dbg_disasm_symbolic_address(reg_val, 0)
+      : 0;
+  const char *sym_prefix = sym ? " (" : "";
+  const char *sym_suffix = sym ? ")" : "";
+  sym = sym ? sym : "";
+  dbg_printf("%3s: %08x_%08x%s%s%s\n",
+             intel_general_64bit_regname[reg_num],
+             GET32H(reg_val), GET32L(reg_val),
+             sym_prefix, sym, sym_suffix);
+}
+
+static void bx_dbg_info_registers_command_output_32(
+    int reg_num, int symbolic)
+{
+  bx_address reg_val = BX_CPU(dbg_cpu)->get_reg32(reg_num);
+  const char *sym = symbolic
+      ? bx_dbg_disasm_symbolic_address(reg_val, 0)
+      : 0;
+  const char *sym_prefix = sym ? " (" : "";
+  sym = sym ? sym : "";
+  const char *sym_suffix = sym ? ")" : "";
+  dbg_printf("%3s: %08x%s%s%s\n",
+             intel_general_32bit_regname[reg_num],
+             reg_val, sym_prefix, sym, sym_suffix);
+}
+
+
 void bx_dbg_info_registers_command(int which_regs_mask)
 {
   bx_address reg;
@@ -1121,57 +1158,13 @@ void bx_dbg_info_registers_command(int which_regs_mask)
     dbg_printf("CPU%d:\n", BX_CPU(dbg_cpu)->bx_cpuid);
 #endif
 #if BX_SUPPORT_X86_64 == 0
-    reg = BX_CPU(dbg_cpu)->get_reg32(BX_32BIT_REG_EAX);
-    dbg_printf("eax: 0x%08x %d\n", (unsigned) reg, (int) reg);
-    reg = BX_CPU(dbg_cpu)->get_reg32(BX_32BIT_REG_ECX);
-    dbg_printf("ecx: 0x%08x %d\n", (unsigned) reg, (int) reg);
-    reg = BX_CPU(dbg_cpu)->get_reg32(BX_32BIT_REG_EDX);
-    dbg_printf("edx: 0x%08x %d\n", (unsigned) reg, (int) reg);
-    reg = BX_CPU(dbg_cpu)->get_reg32(BX_32BIT_REG_EBX);
-    dbg_printf("ebx: 0x%08x %d\n", (unsigned) reg, (int) reg);
-    reg = BX_CPU(dbg_cpu)->get_reg32(BX_32BIT_REG_ESP);
-    dbg_printf("esp: 0x%08x %d\n", (unsigned) reg, (int) reg);
-    reg = BX_CPU(dbg_cpu)->get_reg32(BX_32BIT_REG_EBP);
-    dbg_printf("ebp: 0x%08x %d\n", (unsigned) reg, (int) reg);
-    reg = BX_CPU(dbg_cpu)->get_reg32(BX_32BIT_REG_ESI);
-    dbg_printf("esi: 0x%08x %d\n", (unsigned) reg, (int) reg);
-    reg = BX_CPU(dbg_cpu)->get_reg32(BX_32BIT_REG_EDI);
-    dbg_printf("edi: 0x%08x %d\n", (unsigned) reg, (int) reg);
+    for (int r = 0; r < 8; ++r)
+      bx_dbg_info_registers_command_output_32(r, 1);
     reg = bx_dbg_get_eip();
     dbg_printf("eip: 0x%08x\n", (unsigned) reg);
 #else
-    reg = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_RAX);
-    dbg_printf("rax: %08x_%08x ", GET32H(reg), GET32L(reg));
-    reg = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_RCX);
-    dbg_printf("rcx: %08x_%08x\n", GET32H(reg), GET32L(reg));
-    reg = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_RDX);
-    dbg_printf("rdx: %08x_%08x ", GET32H(reg), GET32L(reg));
-    reg = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_RBX);
-    dbg_printf("rbx: %08x_%08x\n", GET32H(reg), GET32L(reg));
-    reg = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_RSP);
-    dbg_printf("rsp: %08x_%08x ", GET32H(reg), GET32L(reg));
-    reg = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_RBP);
-    dbg_printf("rbp: %08x_%08x\n", GET32H(reg), GET32L(reg));
-    reg = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_RSI);
-    dbg_printf("rsi: %08x_%08x ", GET32H(reg), GET32L(reg));
-    reg = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_RDI);
-    dbg_printf("rdi: %08x_%08x\n", GET32H(reg), GET32L(reg));
-    reg = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_R8);
-    dbg_printf("r8 : %08x_%08x ", GET32H(reg), GET32L(reg));
-    reg = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_R9);
-    dbg_printf("r9 : %08x_%08x\n", GET32H(reg), GET32L(reg));
-    reg = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_R10);
-    dbg_printf("r10: %08x_%08x ", GET32H(reg), GET32L(reg));
-    reg = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_R11);
-    dbg_printf("r11: %08x_%08x\n", GET32H(reg), GET32L(reg));
-    reg = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_R12);
-    dbg_printf("r12: %08x_%08x ", GET32H(reg), GET32L(reg));
-    reg = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_R13);
-    dbg_printf("r13: %08x_%08x\n", GET32H(reg), GET32L(reg));
-    reg = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_R14);
-    dbg_printf("r14: %08x_%08x ", GET32H(reg), GET32L(reg));
-    reg = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_R15);
-    dbg_printf("r15: %08x_%08x\n", GET32H(reg), GET32L(reg));
+    for (int r = 0; r < 16; ++r)
+      bx_dbg_info_registers_command_output_64(r, 1);
     reg = bx_dbg_get_rip();
     dbg_printf("rip: %08x_%08x\n", GET32H(reg), GET32L(reg));
 #endif
@@ -3326,7 +3319,7 @@ void bx_dbg_info_gdt_command(unsigned from, unsigned to)
     Bit8u entry[8];
     if (8*n + 7 > gdtr.limit) break;
     if (bx_dbg_read_linear(dbg_cpu, gdtr.base + 8*n, 8, entry)) {
-      dbg_printf("GDT[0x%02x]=", n);
+      dbg_printf("GDT[0x%04x]=", n << 3);
 
       Bit32u lo = (entry[3]  << 24) | (entry[2]  << 16) | (entry[1]  << 8) | (entry[0]);
       Bit32u hi = (entry[7]  << 24) | (entry[6]  << 16) | (entry[5]  << 8) | (entry[4]);
