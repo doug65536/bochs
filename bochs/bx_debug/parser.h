@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.0.2.  */
+/* A Bison parser, made by GNU Bison 3.0.4.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -125,32 +125,33 @@ extern int bxdebug;
     BX_TOKEN_MODEBP = 335,
     BX_TOKEN_VMEXITBP = 336,
     BX_TOKEN_PRINT_STACK = 337,
-    BX_TOKEN_WATCH = 338,
-    BX_TOKEN_UNWATCH = 339,
-    BX_TOKEN_READ = 340,
-    BX_TOKEN_WRITE = 341,
-    BX_TOKEN_SHOW = 342,
-    BX_TOKEN_LOAD_SYMBOLS = 343,
-    BX_TOKEN_SYMBOLS = 344,
-    BX_TOKEN_LIST_SYMBOLS = 345,
-    BX_TOKEN_GLOBAL = 346,
-    BX_TOKEN_WHERE = 347,
-    BX_TOKEN_PRINT_STRING = 348,
-    BX_TOKEN_NUMERIC = 349,
-    BX_TOKEN_PAGE = 350,
-    BX_TOKEN_HELP = 351,
-    BX_TOKEN_XML = 352,
-    BX_TOKEN_CALC = 353,
-    BX_TOKEN_DEVICE = 354,
-    BX_TOKEN_GENERIC = 355,
-    BX_TOKEN_RSHIFT = 356,
-    BX_TOKEN_LSHIFT = 357,
-    BX_TOKEN_REG_IP = 358,
-    BX_TOKEN_REG_EIP = 359,
-    BX_TOKEN_REG_RIP = 360,
-    NOT = 361,
-    NEG = 362,
-    INDIRECT = 363
+    BX_TOKEN_BT = 338,
+    BX_TOKEN_WATCH = 339,
+    BX_TOKEN_UNWATCH = 340,
+    BX_TOKEN_READ = 341,
+    BX_TOKEN_WRITE = 342,
+    BX_TOKEN_SHOW = 343,
+    BX_TOKEN_LOAD_SYMBOLS = 344,
+    BX_TOKEN_SYMBOLS = 345,
+    BX_TOKEN_LIST_SYMBOLS = 346,
+    BX_TOKEN_GLOBAL = 347,
+    BX_TOKEN_WHERE = 348,
+    BX_TOKEN_PRINT_STRING = 349,
+    BX_TOKEN_NUMERIC = 350,
+    BX_TOKEN_PAGE = 351,
+    BX_TOKEN_HELP = 352,
+    BX_TOKEN_XML = 353,
+    BX_TOKEN_CALC = 354,
+    BX_TOKEN_DEVICE = 355,
+    BX_TOKEN_GENERIC = 356,
+    BX_TOKEN_RSHIFT = 357,
+    BX_TOKEN_LSHIFT = 358,
+    BX_TOKEN_REG_IP = 359,
+    BX_TOKEN_REG_EIP = 360,
+    BX_TOKEN_REG_RIP = 361,
+    NOT = 362,
+    NEG = 363,
+    INDIRECT = 364
   };
 #endif
 /* Tokens.  */
@@ -234,36 +235,37 @@ extern int bxdebug;
 #define BX_TOKEN_MODEBP 335
 #define BX_TOKEN_VMEXITBP 336
 #define BX_TOKEN_PRINT_STACK 337
-#define BX_TOKEN_WATCH 338
-#define BX_TOKEN_UNWATCH 339
-#define BX_TOKEN_READ 340
-#define BX_TOKEN_WRITE 341
-#define BX_TOKEN_SHOW 342
-#define BX_TOKEN_LOAD_SYMBOLS 343
-#define BX_TOKEN_SYMBOLS 344
-#define BX_TOKEN_LIST_SYMBOLS 345
-#define BX_TOKEN_GLOBAL 346
-#define BX_TOKEN_WHERE 347
-#define BX_TOKEN_PRINT_STRING 348
-#define BX_TOKEN_NUMERIC 349
-#define BX_TOKEN_PAGE 350
-#define BX_TOKEN_HELP 351
-#define BX_TOKEN_XML 352
-#define BX_TOKEN_CALC 353
-#define BX_TOKEN_DEVICE 354
-#define BX_TOKEN_GENERIC 355
-#define BX_TOKEN_RSHIFT 356
-#define BX_TOKEN_LSHIFT 357
-#define BX_TOKEN_REG_IP 358
-#define BX_TOKEN_REG_EIP 359
-#define BX_TOKEN_REG_RIP 360
-#define NOT 361
-#define NEG 362
-#define INDIRECT 363
+#define BX_TOKEN_BT 338
+#define BX_TOKEN_WATCH 339
+#define BX_TOKEN_UNWATCH 340
+#define BX_TOKEN_READ 341
+#define BX_TOKEN_WRITE 342
+#define BX_TOKEN_SHOW 343
+#define BX_TOKEN_LOAD_SYMBOLS 344
+#define BX_TOKEN_SYMBOLS 345
+#define BX_TOKEN_LIST_SYMBOLS 346
+#define BX_TOKEN_GLOBAL 347
+#define BX_TOKEN_WHERE 348
+#define BX_TOKEN_PRINT_STRING 349
+#define BX_TOKEN_NUMERIC 350
+#define BX_TOKEN_PAGE 351
+#define BX_TOKEN_HELP 352
+#define BX_TOKEN_XML 353
+#define BX_TOKEN_CALC 354
+#define BX_TOKEN_DEVICE 355
+#define BX_TOKEN_GENERIC 356
+#define BX_TOKEN_RSHIFT 357
+#define BX_TOKEN_LSHIFT 358
+#define BX_TOKEN_REG_IP 359
+#define BX_TOKEN_REG_EIP 360
+#define BX_TOKEN_REG_RIP 361
+#define NOT 362
+#define NEG 363
+#define INDIRECT 364
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE YYSTYPE;
+
 union YYSTYPE
 {
 #line 13 "parser.y" /* yacc.c:1909  */
@@ -272,8 +274,10 @@ union YYSTYPE
   Bit64u   uval;
   bx_bool  bval;
 
-#line 276 "y.tab.h" /* yacc.c:1909  */
+#line 278 "y.tab.h" /* yacc.c:1909  */
 };
+
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif

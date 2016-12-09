@@ -1738,6 +1738,78 @@ void bx_dbg_print_stack_command(unsigned nwords)
   }
 }
 
+void bx_dbg_bt_command(unsigned dist)
+{
+  bx_address linear_bp;
+  unsigned len;
+
+#if BX_SUPPORT_X86_64
+  if (BX_CPU(dbg_cpu)->get_cpu_mode() == BX_MODE_LONG_64) {
+    linear_bp = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_RBP);
+    len = 8;
+  } else
+#endif
+  {
+    if (BX_CPU(dbg_cpu)->sregs[BX_SEG_REG_SS].cache.u.segment.d_b) {
+      linear_bp = BX_CPU(dbg_cpu)->get_reg32(BX_32BIT_REG_EBP);
+      len = 4;
+    } else {
+      linear_bp = BX_CPU(dbg_cpu)->get_reg16(BX_16BIT_REG_BP);
+      len = 2;
+    }
+  }
+
+  Bit8u buf[8];
+  Bit64u addr_on_stack;
+  bx_address addr;
+
+  for (unsigned i = 0; i < dist; ++i) {
+    // Read return address right above frame pointer
+    addr = BX_CPU(dbg_cpu)->get_laddr(BX_SEG_REG_SS, linear_bp);
+    if (!bx_dbg_read_linear(dbg_cpu, addr + len, len, buf))
+      break;
+#if BX_SUPPORT_X86_64
+    if (len == 8) {
+      addr_on_stack = conv_4xBit8u_to_Bit32u(buf) |
+          (Bit64u)conv_4xBit8u_to_Bit32u(buf+4) << 32;
+      const char *Sym=bx_dbg_disasm_symbolic_address(addr_on_stack, 0);
+      dbg_printf("%012" FMT_64 "x (%s)\n", (Bit64u)addr_on_stack,
+                 Sym ? Sym : "<unknown>");
+
+      // Get next frame pointer
+      if (!bx_dbg_read_linear(dbg_cpu, addr, len, buf))
+        break;
+      linear_bp = conv_4xBit8u_to_Bit32u(buf) |
+          (Bit64u)conv_4xBit8u_to_Bit32u(buf+4) << 32;
+    }
+    else
+#endif
+    {
+      if (len == 4) {
+        addr_on_stack = conv_4xBit8u_to_Bit32u(buf);
+        const char *Sym=bx_dbg_disasm_symbolic_address(addr_on_stack, 0);
+        dbg_printf(FMT_ADDRX32 " (%s)\n", (unsigned)addr_on_stack,
+                   Sym ? Sym : "<unknown>");
+
+        // Get next frame pointer
+        if (!bx_dbg_read_linear(dbg_cpu, addr, len, buf))
+          break;
+        linear_bp = conv_4xBit8u_to_Bit32u(buf);
+      } else {
+        addr_on_stack = conv_2xBit8u_to_Bit16u(buf);
+        const char *Sym=bx_dbg_disasm_symbolic_address(addr_on_stack, 0);
+        dbg_printf(FMT_ADDRX16 " (%s)\n", (unsigned)addr_on_stack,
+                   Sym ? Sym : "<unknown>");
+
+        // Get next frame pointer
+        if (!bx_dbg_read_linear(dbg_cpu, addr, len, buf))
+          break;
+        linear_bp = conv_2xBit8u_to_Bit16u(buf);
+      }
+    }
+  }
+}
+
 void bx_dbg_print_watchpoints(void)
 { unsigned i;
   Bit8u buf[2];
