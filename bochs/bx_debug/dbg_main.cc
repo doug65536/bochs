@@ -3871,6 +3871,10 @@ void bx_dbg_dump_table(void)
 
   char flags[16];
 
+  if (!lma && (cr3 >> 32)) {
+    dbg_printf("32 bit PAE page directory physical address not within first 4GB!\n");
+  }
+
   phyaddr[0] = pd;
   for (bx_address lvl0 = 0; lvl0 < topent; lvl0++) {
     if (pae)
@@ -3945,6 +3949,7 @@ void bx_dbg_dump_table(void)
         // 32 bit 4KB page
         phyaddr[1] = pte & (-1 << 12);
         dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> %0*"FMT_64"x 4KB %s\n",
+          phydigits, (Bit64u)ent_addr,
           lindigits, (Bit64u)linaddr[1],
           phydigits, (Bit64u)phyaddr[1],
           bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 1));
@@ -3964,6 +3969,7 @@ void bx_dbg_dump_table(void)
       if (huge1) {
         phyaddr[1] = pte & ((Bit64s)-1 << 30) & ~((Bit64s)-1 << 52);
         dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> %0*"FMT_64"x 1GB %s\n",
+          phydigits, (Bit64u)ent_addr,
           lindigits, (Bit64u)linaddr[1],
           phydigits, (Bit64u)phyaddr[1],
           bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 1));
@@ -3993,6 +3999,7 @@ void bx_dbg_dump_table(void)
         if (huge2) {
           phyaddr[2] = pte & ((Bit64s)-1 << 21) & ~((Bit64s)-1 << 52);
           dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> %0*"FMT_64"x 2MB %s\n",
+            phydigits, (Bit64u)ent_addr,
             lindigits, (Bit64u)linaddr[2],
             phydigits, (Bit64u)phyaddr[2],
             bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 2));
