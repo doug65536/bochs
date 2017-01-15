@@ -1741,20 +1741,36 @@ void bx_dbg_print_stack_command(unsigned nwords)
 void bx_dbg_bt_command(unsigned dist)
 {
   bx_address linear_bp;
+  bx_address linear_sp;
   unsigned len;
 
 #if BX_SUPPORT_X86_64
   if (BX_CPU(dbg_cpu)->get_cpu_mode() == BX_MODE_LONG_64) {
     linear_bp = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_RBP);
+    linear_sp = BX_CPU(dbg_cpu)->get_reg64(BX_64BIT_REG_RSP);
+    bx_address rip = BX_CPU(dbg_cpu)->get_instruction_pointer();
+    const char *Sym=bx_dbg_disasm_symbolic_address(rip, 0);
+    dbg_printf("%012" FMT_64 "x -> %012" FMT_64 "x (%s)\n",
+      (Bit64u)linear_sp, (Bit64u)rip, Sym);
     len = 8;
   } else
 #endif
   {
     if (BX_CPU(dbg_cpu)->sregs[BX_SEG_REG_SS].cache.u.segment.d_b) {
       linear_bp = BX_CPU(dbg_cpu)->get_reg32(BX_32BIT_REG_EBP);
+      linear_sp = BX_CPU(dbg_cpu)->get_reg32(BX_32BIT_REG_ESP);
+      bx_address eip = BX_CPU(dbg_cpu)->get_instruction_pointer();
+      const char *Sym=bx_dbg_disasm_symbolic_address(eip, 0);
+      dbg_printf("%08x -> %08x (%s)\n",
+        (Bit32u)linear_sp, (Bit32u)eip, Sym);
       len = 4;
     } else {
       linear_bp = BX_CPU(dbg_cpu)->get_reg16(BX_16BIT_REG_BP);
+      linear_sp = BX_CPU(dbg_cpu)->get_reg16(BX_16BIT_REG_BP);
+      bx_address ip = BX_CPU(dbg_cpu)->get_instruction_pointer();
+      const char *Sym=bx_dbg_disasm_symbolic_address(ip, 0);
+      dbg_printf("%04x -> %04x (%s)\n",
+        (Bit16u)linear_sp, (Bit16u)ip, Sym);
       len = 2;
     }
   }
@@ -1773,7 +1789,9 @@ void bx_dbg_bt_command(unsigned dist)
       addr_on_stack = conv_4xBit8u_to_Bit32u(buf) |
           (Bit64u)conv_4xBit8u_to_Bit32u(buf+4) << 32;
       const char *Sym=bx_dbg_disasm_symbolic_address(addr_on_stack, 0);
-      dbg_printf("%012" FMT_64 "x (%s)\n", (Bit64u)addr_on_stack,
+      dbg_printf("%012" FMT_64 "x -> %012" FMT_64 "x (%s)\n",
+                 (Bit64u)addr,
+                 (Bit64u)addr_on_stack,
                  Sym ? Sym : "<unknown>");
 
       // Get next frame pointer
@@ -1788,7 +1806,9 @@ void bx_dbg_bt_command(unsigned dist)
       if (len == 4) {
         addr_on_stack = conv_4xBit8u_to_Bit32u(buf);
         const char *Sym=bx_dbg_disasm_symbolic_address(addr_on_stack, 0);
-        dbg_printf(FMT_ADDRX32 " (%s)\n", (unsigned)addr_on_stack,
+        dbg_printf(FMT_ADDRX32 " -> " FMT_ADDRX32 " (%s)\n",
+                   (Bit32u)addr,
+                   (Bit32u)addr_on_stack,
                    Sym ? Sym : "<unknown>");
 
         // Get next frame pointer
@@ -1798,7 +1818,9 @@ void bx_dbg_bt_command(unsigned dist)
       } else {
         addr_on_stack = conv_2xBit8u_to_Bit16u(buf);
         const char *Sym=bx_dbg_disasm_symbolic_address(addr_on_stack, 0);
-        dbg_printf(FMT_ADDRX16 " (%s)\n", (unsigned)addr_on_stack,
+        dbg_printf(FMT_ADDRX16 " -> " FMT_ADDRX16  " (%s)\n",
+                   (Bit16u)addr,
+                   (Bit16u)addr_on_stack,
                    Sym ? Sym : "<unknown>");
 
         // Get next frame pointer
@@ -3789,48 +3811,232 @@ void bx_dbg_post_dma_reports(void)
   bx_dbg_batch_dma.Qsize = 0;
 }
 
+// sizeof(buf) should be at least 13
+static char *bx_dbg_dump_table_flags(
+    char *buf, size_t buf_size, Bit64u pte, int level)
+{
+  bx_bool w = !!(pte & ((Bit64u)1 << 1));   // writeable
+  bx_bool u = !!(pte & ((Bit64u)1 << 2));   // user
+  bx_bool wt = !!(pte & ((Bit64u)1 << 3));  // write-through
+  bx_bool cd = !!(pte & ((Bit64u)1 << 4));  // cache-disable
+  bx_bool a = !!(pte & ((Bit64u)1 << 5));   // accessed
+  bx_bool d = !!(pte & ((Bit64u)1 << 6));   // dirty
+  bx_bool l = !!(pte & ((Bit64u)1 << 7));   // large
+  bx_bool g = !!(pte & ((Bit64u)1 << 8));   // global
+  bx_bool x = !!(pte & ((Bit64u)1 << 63));  // execute-disable
+
+  snprintf(buf, buf_size, "%s%s%s%s%s%s%s%s%s",
+           x ? "XD"  : "--",
+           g ? "G"   : "-",
+           l ? "L"   : "-",
+           d ? "D"   : "-",
+           a ? "A"   : "-",
+           cd ? "CD" : "--",
+           wt ? "WT" : "--",
+           u ? "U"   : "-",
+           w ? "W"   : "-");
+  return buf;
+}
+
 void bx_dbg_dump_table(void)
 {
-  Bit32u lin, start_lin; // show only low 32 bit
-  bx_phy_address phy, start_phy; // start of a valid translation interval
-  bx_bool valid;
-
   if (! BX_CPU(dbg_cpu)->cr0.get_PG()) {
     printf("paging off\n");
     return;
   }
 
+  bx_address cr3 = BX_CPU(dbg_cpu)->cr3;
+  bx_address pd = cr3 & -4096;
+
   printf("cr3: 0x" FMT_PHY_ADDRX "\n", (bx_phy_address)BX_CPU(dbg_cpu)->cr3);
 
-  lin = 0;
-  phy = 0;
+  bx_cr4_t &cr4 = BX_CPU(dbg_cpu)->cr4;
 
-  start_lin = 1;
-  start_phy = 2;
-  while(1) {
-    valid = BX_CPU(dbg_cpu)->dbg_xlate_linear2phy(lin, &phy);
-    if(valid) {
-      if((lin - start_lin) != (phy - start_phy)) {
-        if(start_lin != 1)
-          dbg_printf("0x%08x-0x%08x -> 0x" FMT_PHY_ADDRX "-0x" FMT_PHY_ADDRX "\n",
-            start_lin, lin - 1, start_phy, start_phy + (lin-1-start_lin));
-        start_lin = lin;
-        start_phy = phy;
-      }
-    } else {
-      if(start_lin != 1)
-        dbg_printf("0x%08x-0x%08x -> 0x" FMT_PHY_ADDRX "-0x" FMT_PHY_ADDRX "\n",
-          start_lin, lin - 1, start_phy, start_phy + (lin-1-start_lin));
-      start_lin = 1;
-      start_phy = 2;
+  // Physical address extension and long mode active
+  bx_bool pae = cr4.get_PAE();
+  bx_bool lma = BX_CPU(dbg_cpu)->efer.get_LMA();
+  int levels = lma && pae ? 4 : pae ? 3 : 2;
+  int ent = pae ? 512 : 1024;
+  int topent = levels == 3 ? 2 : ent;
+  int ptesz = pae ? 8 : 4;
+  int lindigits = lma ? 12 : 8;
+  int phydigits = pae ? 13 : 8;
+
+  Bit8u pte_bytes[8];
+  bx_address pte;
+  bx_address linaddr[5];
+  bx_address phyaddr[5];
+
+  bx_address ent_addr;
+
+  char flags[16];
+
+  phyaddr[0] = pd;
+  for (bx_address lvl0 = 0; lvl0 < topent; lvl0++) {
+    if (pae)
+      // Highest 9 bits of linear address
+      linaddr[0] = lvl0 << (12 + (levels * 9 - 9));
+    else
+      // Highest 10 bits of linear address
+      linaddr[0] = lvl0 << 22;
+
+    ent_addr = phyaddr[0] + ptesz * lvl0;
+
+    // Read PTE
+    BX_MEM(0)->dbg_fetch_mem(
+          BX_CPU(dbg_cpu), ent_addr, ptesz, pte_bytes);
+
+    // Decode bytes into PTE
+    pte = conv_4xBit8u_to_Bit32u(pte_bytes);
+    if (ptesz == 8)
+      pte |= (Bit64u)conv_4xBit8u_to_Bit32u(pte_bytes + 4) << 32;
+
+    if (!(pte & 1))
+      continue;
+
+    int huge0 = !!(pte & (1<<7));
+
+    if (!pae && huge0) {
+      // 4MB page
+      phyaddr[0] = pte & -1 << 22;
+      dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> %0*"FMT_64"x 4MB %s\n",
+        phydigits, (Bit64u)ent_addr,
+        lindigits, (Bit64u)linaddr[0],
+        phydigits, (Bit64u)phyaddr[0],
+        bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 0));
+      continue;
     }
 
-    if(lin == 0xfffff000) break;
-    lin += 0x1000;
+    if (pae && huge0) {
+      // Invalid PAE huge page at level 0
+      dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> Reserved huge page bit set!\n",
+        phydigits, (Bit64u)ent_addr,
+        lindigits, (Bit64u)linaddr[0],
+        bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 0));
+      continue;
+    }
+
+    phyaddr[1] = (pte & ((Bit64s)-1 << 12)) & ~((Bit64s)-1 << 52);
+    for (bx_address lvl1 = 0; lvl1 < ent; ++lvl1) {
+      if (pae)
+        // Second highest 9 bits of linear address
+        linaddr[1] = linaddr[0] + (lvl1 << (12 + (levels * 9 - 18)));
+      else
+        // Second highest 10 bits of linear address
+        linaddr[1] = linaddr[0] + (lvl1 << 12);
+
+      ent_addr = phyaddr[1] + ptesz * lvl1;
+
+      // Read PTE
+      BX_MEM(0)->dbg_fetch_mem(
+        BX_CPU(dbg_cpu), ent_addr, ptesz, pte_bytes);
+
+      // Decode bytes into PTE
+      pte = conv_4xBit8u_to_Bit32u(pte_bytes);
+      if (ptesz == 8)
+        pte |= (Bit64u)conv_4xBit8u_to_Bit32u(pte_bytes + 4) << 32;
+
+      if (!(pte & 1))
+        continue;
+
+      int huge1 = !!(pte & (1<<7));
+
+      if (!pae) {
+        // 32 bit 4KB page
+        phyaddr[1] = pte & (-1 << 12);
+        dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> %0*"FMT_64"x 4KB %s\n",
+          lindigits, (Bit64u)linaddr[1],
+          phydigits, (Bit64u)phyaddr[1],
+          bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 1));
+        continue;
+      }
+
+      if (huge1 && !lma) {
+        phyaddr[1] = pte & ((Bit64s)-1 << 21) & ~((Bit64s)-1 << 52);
+        dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> %0*"FMT_64"x 2MB %s\n",
+          phydigits, (Bit64u)ent_addr,
+          lindigits, (Bit64u)linaddr[1],
+          phydigits, (Bit64u)phyaddr[1],
+          bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 1));
+        continue;
+      }
+
+      if (huge1) {
+        phyaddr[1] = pte & ((Bit64s)-1 << 30) & ~((Bit64s)-1 << 52);
+        dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> %0*"FMT_64"x 1GB %s\n",
+          lindigits, (Bit64u)linaddr[1],
+          phydigits, (Bit64u)phyaddr[1],
+          bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 1));
+        continue;
+      }
+
+      phyaddr[2] = (pte & ((Bit64s)-1 << 12)) & ~((Bit64s)-1 << 52);
+      for (bx_address lvl2 = 0; lvl2 < ent; ++lvl2) {
+        linaddr[2] = linaddr[1] + (lvl2 << (12 + (levels * 9 - 27)));
+
+        ent_addr = phyaddr[2] + ptesz * lvl2;
+
+        // Read PTE
+        BX_MEM(0)->dbg_fetch_mem(
+          BX_CPU(dbg_cpu), ent_addr, ptesz, pte_bytes);
+
+        // Decode bytes into PTE
+        pte = conv_4xBit8u_to_Bit32u(pte_bytes);
+        if (ptesz == 8)
+          pte |= (Bit64u)conv_4xBit8u_to_Bit32u(pte_bytes + 4) << 32;
+
+        if (!(pte & 1))
+          continue;
+
+        int huge2 = !!(pte & (1<<7));
+
+        if (huge2) {
+          phyaddr[2] = pte & ((Bit64s)-1 << 21) & ~((Bit64s)-1 << 52);
+          dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> %0*"FMT_64"x 2MB %s\n",
+            lindigits, (Bit64u)linaddr[2],
+            phydigits, (Bit64u)phyaddr[2],
+            bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 2));
+          continue;
+        }
+
+        if (!lma) {
+          phyaddr[2] = pte & ((Bit64s)-1 << 12) & ~((Bit64s)-1 << 52);
+          dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> %0*"FMT_64"x 4KB %s\n",
+            phydigits, (Bit64u)ent_addr,
+            lindigits, (Bit64u)linaddr[2],
+            phydigits, (Bit64u)phyaddr[2],
+            bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 2));
+          continue;
+        }
+
+        phyaddr[3] = (pte & ((Bit64s)-1 << 12)) & ~((Bit64s)-1 << 52);
+        for (bx_address lvl3 = 0; lvl3 < ent; ++lvl3) {
+          linaddr[3] = linaddr[2] + (lvl3 << 12);
+
+          ent_addr = phyaddr[3] + ptesz * lvl3;
+
+          // Read PTE
+          BX_MEM(0)->dbg_fetch_mem(
+            BX_CPU(dbg_cpu), ent_addr, ptesz, pte_bytes);
+
+          // Decode bytes into PTE
+          pte = conv_4xBit8u_to_Bit32u(pte_bytes);
+          if (ptesz == 8)
+            pte |= (Bit64u)conv_4xBit8u_to_Bit32u(pte_bytes + 4) << 32;
+
+          if (!(pte & 1))
+            continue;
+
+          phyaddr[4] = pte & ((Bit64s)-1 << 12) & ~((Bit64s)-1 << 52);
+          dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> %0*"FMT_64"x 4KB %s\n",
+            phydigits, (Bit64u)ent_addr,
+            lindigits, (Bit64u)linaddr[3],
+            phydigits, (Bit64u)phyaddr[4],
+            bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 3));
+        }
+      }
+    }
   }
-  if(start_lin != 1)
-    dbg_printf("0x%08x-0x%08x -> 0x" FMT_PHY_ADDRX "-0x" FMT_PHY_ADDRX "\n",
-         start_lin, 0xffffffff, start_phy, start_phy + (0xffffffff-start_lin));
 }
 
 void bx_dbg_print_help(void)
