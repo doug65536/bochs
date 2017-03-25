@@ -3314,6 +3314,11 @@ void bx_dbg_print_descriptor64(Bit32u lo1, Bit32u hi1, Bit32u lo2, Bit32u hi2)
       default:
         // task, int, trap, or call gate.
         dbg_printf("target=0x%04x:" FMT_ADDRX ", DPL=%d", segment, offset, dpl);
+
+        const char *Sym = bx_dbg_disasm_symbolic_address(offset, 0);
+        if (Sym)
+          dbg_printf(" (%s)", Sym);
+
         break;
       }
     }
