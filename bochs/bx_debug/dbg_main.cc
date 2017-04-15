@@ -294,8 +294,10 @@ int bx_dbg_main(void)
 
   bx_dbg_user_input_loop();
 
-  if(debugger_log != NULL)
+  if(debugger_log != NULL) {
     fclose(debugger_log);
+    debugger_log = NULL;
+  }
 
   bx_dbg_exit(0);
   return(0); // keep compiler happy
@@ -3907,7 +3909,7 @@ void bx_dbg_dump_table(void)
 
     if (!pae && huge0) {
       // 4MB page
-      phyaddr[0] = pte & -1 << 22;
+      phyaddr[0] = pte & (~(Bit64u)0 << 22);
       dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> %0*"FMT_64"x 4MB %s\n",
         phydigits, (Bit64u)ent_addr,
         lindigits, (Bit64u)linaddr[0],
@@ -3925,7 +3927,7 @@ void bx_dbg_dump_table(void)
       continue;
     }
 
-    phyaddr[1] = (pte & ((Bit64s)-1 << 12)) & ~((Bit64s)-1 << 52);
+    phyaddr[1] = (pte & (~(Bit64u)0 << 12)) & ~(~(Bit64u)0 << 52);
     for (bx_address lvl1 = 0; lvl1 < ent; ++lvl1) {
       if (pae)
         // Second highest 9 bits of linear address
@@ -3952,7 +3954,7 @@ void bx_dbg_dump_table(void)
 
       if (!pae) {
         // 32 bit 4KB page
-        phyaddr[1] = pte & (-1 << 12);
+        phyaddr[1] = pte & (~(Bit64u)0 << 12);
         dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> %0*"FMT_64"x 4KB %s\n",
           phydigits, (Bit64u)ent_addr,
           lindigits, (Bit64u)linaddr[1],
@@ -3962,7 +3964,7 @@ void bx_dbg_dump_table(void)
       }
 
       if (huge1 && !lma) {
-        phyaddr[1] = pte & ((Bit64s)-1 << 21) & ~((Bit64s)-1 << 52);
+        phyaddr[1] = pte & (~(Bit64u)0 << 21) & ~(~(Bit64u)0 << 52);
         dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> %0*"FMT_64"x 2MB %s\n",
           phydigits, (Bit64u)ent_addr,
           lindigits, (Bit64u)linaddr[1],
@@ -3972,7 +3974,7 @@ void bx_dbg_dump_table(void)
       }
 
       if (huge1) {
-        phyaddr[1] = pte & ((Bit64s)-1 << 30) & ~((Bit64s)-1 << 52);
+        phyaddr[1] = pte & (~(Bit64u)0 << 30) & ~(~(Bit64u)0 << 52);
         dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> %0*"FMT_64"x 1GB %s\n",
           phydigits, (Bit64u)ent_addr,
           lindigits, (Bit64u)linaddr[1],
@@ -3981,7 +3983,7 @@ void bx_dbg_dump_table(void)
         continue;
       }
 
-      phyaddr[2] = (pte & ((Bit64s)-1 << 12)) & ~((Bit64s)-1 << 52);
+      phyaddr[2] = (pte & (~(Bit64u)0 << 12)) & ~(~(Bit64u)0 << 52);
       for (bx_address lvl2 = 0; lvl2 < ent; ++lvl2) {
         linaddr[2] = linaddr[1] + (lvl2 << (12 + (levels * 9 - 27)));
 
@@ -4002,7 +4004,7 @@ void bx_dbg_dump_table(void)
         int huge2 = !!(pte & (1<<7));
 
         if (huge2) {
-          phyaddr[2] = pte & ((Bit64s)-1 << 21) & ~((Bit64s)-1 << 52);
+          phyaddr[2] = pte & (~(Bit64u)0 << 21) & ~(~(Bit64u)0 << 52);
           dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> %0*"FMT_64"x 2MB %s\n",
             phydigits, (Bit64u)ent_addr,
             lindigits, (Bit64u)linaddr[2],
@@ -4012,7 +4014,7 @@ void bx_dbg_dump_table(void)
         }
 
         if (!lma) {
-          phyaddr[2] = pte & ((Bit64s)-1 << 12) & ~((Bit64s)-1 << 52);
+          phyaddr[2] = pte & (~(Bit64u)0 << 12) & ~(~(Bit64u)0 << 52);
           dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> %0*"FMT_64"x 4KB %s\n",
             phydigits, (Bit64u)ent_addr,
             lindigits, (Bit64u)linaddr[2],
@@ -4021,7 +4023,7 @@ void bx_dbg_dump_table(void)
           continue;
         }
 
-        phyaddr[3] = (pte & ((Bit64s)-1 << 12)) & ~((Bit64s)-1 << 52);
+        phyaddr[3] = (pte & (~(Bit64u)0 << 12)) & ~(~(Bit64u)0 << 52);
         for (bx_address lvl3 = 0; lvl3 < ent; ++lvl3) {
           linaddr[3] = linaddr[2] + (lvl3 << 12);
 
@@ -4039,7 +4041,7 @@ void bx_dbg_dump_table(void)
           if (!(pte & 1))
             continue;
 
-          phyaddr[4] = pte & ((Bit64s)-1 << 12) & ~((Bit64s)-1 << 52);
+          phyaddr[4] = pte & (~(Bit64u)0 << 12) & ~(~(Bit64u)0 << 52);
           dbg_printf("%0*"FMT_64"x: %0*"FMT_64"x -> %0*"FMT_64"x 4KB %s\n",
             phydigits, (Bit64u)ent_addr,
             lindigits, (Bit64u)linaddr[3],
