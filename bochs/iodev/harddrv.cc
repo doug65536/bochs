@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2001-2015  The Bochs Project
+//  Copyright (C) 2001-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -109,7 +109,7 @@ BX_CPP_INLINE Bit32u read_32bit(const Bit8u* buf)
 bx_hard_drive_c *theHardDrive = NULL;
 logfunctions *atapilog = NULL;
 
-int CDECL libharddrv_LTX_plugin_init(plugin_t *plugin, plugintype_t type, int argc, char *argv[])
+int CDECL libharddrv_LTX_plugin_init(plugin_t *plugin, plugintype_t type)
 {
   theHardDrive = new bx_hard_drive_c();
   bx_devices.pluginHardDrive = theHardDrive;
@@ -376,22 +376,22 @@ void bx_hard_drive_c::init(void)
         BX_CONTROLLER(channel,device).sector_count = 0;
         BX_CONTROLLER(channel,device).interrupt_reason.c_d = 1;
         if (BX_CONTROLLER(channel,device).sector_count != 0x01)
-          BX_PANIC(("interrupt reason bit field error"));
+          BX_FATAL(("interrupt reason bit field error"));
 
         BX_CONTROLLER(channel,device).sector_count = 0;
         BX_CONTROLLER(channel,device).interrupt_reason.i_o = 1;
         if (BX_CONTROLLER(channel,device).sector_count != 0x02)
-          BX_PANIC(("interrupt reason bit field error"));
+          BX_FATAL(("interrupt reason bit field error"));
 
         BX_CONTROLLER(channel,device).sector_count = 0;
         BX_CONTROLLER(channel,device).interrupt_reason.rel = 1;
         if (BX_CONTROLLER(channel,device).sector_count != 0x04)
-          BX_PANIC(("interrupt reason bit field error"));
+          BX_FATAL(("interrupt reason bit field error"));
 
         BX_CONTROLLER(channel,device).sector_count = 0;
         BX_CONTROLLER(channel,device).interrupt_reason.tag = 3;
         if (BX_CONTROLLER(channel,device).sector_count != 0x18)
-          BX_PANIC(("interrupt reason bit field error"));
+          BX_FATAL(("interrupt reason bit field error"));
         BX_CONTROLLER(channel,device).sector_count = 0;
 
         // allocate low level driver
@@ -493,8 +493,10 @@ void bx_hard_drive_c::init(void)
             Bit16u heads = BX_DRIVE(channel,device).hdimage->heads;
             Bit16u spt = BX_DRIVE(channel,device).hdimage->spt;
             Bit8u  translation = SIM->get_param_enum("translation", base)->get();
+            Bit8u  bd = (SIM->get_param_enum("biosdetect", base)->get() & 0x03);
 
-            Bit8u reg = 0x39 + channel/2;
+            Bit8u treg = 0x39 + channel/2;
+            Bit8u breg = 0x3b + channel/2;
             Bit8u bitshift = 2 * (device+(2 * (channel%2)));
 
             // Find the right translation if autodetect
@@ -523,18 +525,20 @@ void bx_hard_drive_c::init(void)
 
             switch(translation) {
               case BX_ATA_TRANSLATION_NONE:
-                DEV_cmos_set_reg(reg, DEV_cmos_get_reg(reg) | (0 << bitshift));
+                DEV_cmos_set_reg(treg, DEV_cmos_get_reg(treg) | (0 << bitshift));
                 break;
               case BX_ATA_TRANSLATION_LBA:
-                DEV_cmos_set_reg(reg, DEV_cmos_get_reg(reg) | (1 << bitshift));
+                DEV_cmos_set_reg(treg, DEV_cmos_get_reg(treg) | (1 << bitshift));
                 break;
               case BX_ATA_TRANSLATION_LARGE:
-                DEV_cmos_set_reg(reg, DEV_cmos_get_reg(reg) | (2 << bitshift));
+                DEV_cmos_set_reg(treg, DEV_cmos_get_reg(treg) | (2 << bitshift));
                 break;
               case BX_ATA_TRANSLATION_RECHS:
-                DEV_cmos_set_reg(reg, DEV_cmos_get_reg(reg) | (3 << bitshift));
+                DEV_cmos_set_reg(treg, DEV_cmos_get_reg(treg) | (3 << bitshift));
                 break;
             }
+            // TODO: biosdetect flag not yet handled by Bochs BIOS
+            DEV_cmos_set_reg(breg, DEV_cmos_get_reg(breg) | (bd << bitshift));
           }
         }
       }
@@ -663,7 +667,9 @@ void bx_hard_drive_c::seek_timer()
         controller->status.seek_complete = 1;
         controller->status.drq   = 1;
         controller->status.corrected_data = 0;
+#if BX_SUPPORT_PCI
         DEV_ide_bmdma_start_transfer(channel);
+#endif
         break;
       case 0x70: // SEEK
         BX_SELECTED_DRIVE(channel).curr_lsector = BX_SELECTED_DRIVE(channel).next_lsector;
@@ -3161,7 +3167,9 @@ bx_hard_drive_c::ready_to_send_atapi(Bit8u channel)
   controller->status.err = 0;
 
   if (BX_SELECTED_CONTROLLER(channel).packet_dma) {
+#if BX_SUPPORT_PCI
     DEV_ide_bmdma_start_transfer(channel);
+#endif
   } else {
     raise_interrupt(channel);
   }

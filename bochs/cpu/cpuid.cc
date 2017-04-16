@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//   Copyright (c) 2014-2015 Stanislav Shwartsman
+//   Copyright (c) 2014-2017 Stanislav Shwartsman
 //          Written by Stanislav Shwartsman [sshwarts at sourceforge net]
 //
 //  This library is free software; you can redistribute it and/or
@@ -203,14 +203,43 @@ void bx_cpuid_t::get_std_cpuid_xsave_leaf(Bit32u subfunction, cpuid_function_t *
       // EAX[0] - support for the XSAVEOPT instruction
       // EAX[1] - support for compaction extensions to the XSAVE feature set
       // EAX[2] - support for execution of XGETBV with ECX = 1
-      // EAX[3] - support for XSAVES, XRSTORS, and the IA32_XSS MSR (not implemented yet)
+      // EAX[3] - support for XSAVES, XRSTORS, and the IA32_XSS MSR
       leaf->eax = 0;
       if (is_cpu_extension_supported(BX_ISA_XSAVEOPT))
         leaf->eax |= 0x1;
       if (is_cpu_extension_supported(BX_ISA_XSAVEC))
         leaf->eax |= (1<<1) | (1<<2);
+      if (is_cpu_extension_supported(BX_ISA_XSAVES))
+        leaf->eax |= (1<<3);
+
+      // EBX[31:00] - The size (in bytes) of the XSAVE area containing all states enabled by (XCRO | IA32_XSS)
       leaf->ebx = 0;
-      leaf->ecx = 0;
+      if (is_cpu_extension_supported(BX_ISA_XSAVES)) {
+        xcr0_t xcr0_xss = cpu->xcr0;
+        xcr0_xss.val32 |= cpu->msr.msr_xss;
+#if BX_SUPPORT_AVX
+        if (xcr0_xss.get_YMM())
+          leaf->ebx = XSAVE_YMM_STATE_OFFSET + XSAVE_YMM_STATE_LEN;
+#endif
+#if BX_SUPPORT_EVEX
+        if (xcr0_xss.get_OPMASK())
+          leaf->ebx = XSAVE_OPMASK_STATE_OFFSET + XSAVE_OPMASK_STATE_LEN;
+        if (xcr0_xss.get_ZMM_HI256())
+          leaf->ebx = XSAVE_ZMM_HI256_STATE_OFFSET + XSAVE_ZMM_HI256_STATE_LEN;
+        if (xcr0_xss.get_HI_ZMM())
+          leaf->ebx = XSAVE_HI_ZMM_STATE_OFFSET + XSAVE_HI_ZMM_STATE_LEN;
+#endif
+#if BX_SUPPORT_PKEYS
+        if (xcr0_xss.get_PKRU())
+          leaf->ebx = XSAVE_PKRU_STATE_OFFSET + XSAVE_PKRU_STATE_LEN;
+#endif
+      }
+
+      // ECX[31:0] - Reports the supported bits of the lower 32 bits of the IA32_XSS MSR.
+      //             IA32_XSS[n]    can be set to 1 only if ECX[n] is 1
+      // EDX[31:0] - Reports the supported bits of the upper 32 bits of the IA32_XSS MSR.
+      //             IA32_XSS[n+32] can be set to 1 only if EDX[n] is 1
+      leaf->ecx = 0; // no supported bits in MSR_XSS for now
       leaf->edx = 0;
       break;
 
@@ -333,6 +362,27 @@ void bx_cpuid_t::get_ext_cpuid_brand_string_leaf(const char *brand_string, Bit32
 #endif
 }
 
+// leaf 0x80000008 - return Intel defaults //
+void bx_cpuid_t::get_ext_cpuid_leaf_8(cpuid_function_t *leaf) const
+{
+  // virtual & phys address size in low 2 bytes of EAX.
+  // TODO: physical address width should be 32-bit when no PSE-36 is supported
+  Bit32u phy_addr_width = BX_PHY_ADDRESS_WIDTH;
+  Bit32u lin_addr_width = is_cpu_extension_supported(BX_ISA_LONG_MODE) ? BX_LIN_ADDRESS_WIDTH : 32;
+
+  leaf->eax = phy_addr_width | (lin_addr_width << 8);
+
+  // [0:0] CLZERO support
+  // [1:1] Instruction Retired Counter support (???)
+  // [2:2] Error Pointer Zero/Restore (???)
+  leaf->ebx = 0;
+  if (is_cpu_extension_supported(BX_ISA_CLZERO))
+    leaf->ebx |= 0x1;
+
+  leaf->ecx = 0; // Reserved, undefined for Intel
+  leaf->edx = 0;
+}
+
 void bx_cpuid_t::get_cpuid_hidden_level(cpuid_function_t *leaf, const char *magic_string) const
 {
   memcpy(&(leaf->eax), magic_string     , 4);
@@ -363,8 +413,24 @@ void bx_cpuid_t::dump_cpuid(unsigned max_std_leaf, unsigned max_ext_leaf) const
 
   if (max_ext_leaf == 0) return;
 
-  for (unsigned ext_leaf=0x80000000; ext_leaf<=(0x8000000 + max_ext_leaf); ext_leaf++) {
+  for (unsigned ext_leaf=0x80000000; ext_leaf<=(0x80000000 + max_ext_leaf); ext_leaf++) {
     dump_cpuid_leaf(ext_leaf);
   }
 }
 
+void bx_cpuid_t::warning_messages(unsigned extension) const
+{
+  switch(extension) {
+  case BX_ISA_3DNOW:
+    BX_INFO(("WARNING: 3DNow! is not implemented yet !"));
+    break;
+  case BX_ISA_RDRAND:
+    BX_INFO(("WARNING: RDRAND would not produce true random numbers !"));
+    break;
+  case BX_ISA_RDSEED:
+    BX_INFO(("WARNING: RDSEED would not produce true random numbers !"));
+    break;
+  default:
+    break;
+  }
+}

@@ -2,8 +2,8 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2009       Benjamin D Lunt (fys at frontiernet net)
-//                2009-2015  The Bochs Project
+//  Copyright (C) 2009-2016  Benjamin D Lunt (fys [at] fysnet [dot] net)
+//                2009-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -32,6 +32,12 @@
 #endif
 
 #define USB_OHCI_PORTS 2
+
+// HCFS values
+#define  OHCI_USB_RESET       0x00
+#define  OHCI_USB_RESUME      0x01
+#define  OHCI_USB_OPERATIONAL 0x02
+#define  OHCI_USB_SUSPEND     0x03
 
 #define OHCI_INTR_SO          (1<<0) // Scheduling overrun
 #define OHCI_INTR_WD          (1<<1) // HcDoneHead writeback
@@ -235,8 +241,6 @@ typedef struct {
   bx_bool  use_control_head;
   bx_bool  use_bulk_head;
   Bit64u   sof_time;
-  Bit32u   async_td;
-  bx_bool  async_complete;
 
   Bit8u device_change;
   int rt_conf_id;
@@ -244,7 +248,7 @@ typedef struct {
 
 
 
-class bx_usb_ohci_c : public bx_devmodel_c, public bx_pci_device_stub_c {
+class bx_usb_ohci_c : public bx_pci_device_c {
 public:
   bx_usb_ohci_c();
   virtual ~bx_usb_ohci_c();
@@ -252,10 +256,10 @@ public:
   virtual void reset(unsigned);
   virtual void register_state(void);
   virtual void after_restore_state(void);
-  virtual Bit32u  pci_read_handler(Bit8u address, unsigned io_len);
-  virtual void    pci_write_handler(Bit8u address, Bit32u value, unsigned io_len);
 
-  void async_complete_packet(USBPacket *packet);
+  virtual void pci_write_handler(Bit8u address, Bit32u value, unsigned io_len);
+
+  void event_handler(int event, USBPacket *packet, int port);
 
   static const char *usb_param_handler(bx_param_string_c *param, int set,
                                        const char *oldval, const char *val, int maxlen);
@@ -263,9 +267,8 @@ public:
 private:
 
   bx_usb_ohci_t hub;
-  Bit8u         *device_buffer;
 
-  USBPacket usb_packet;
+  USBAsync *packets;
 
   static void reset_hc();
   static void reset_port(int);
@@ -283,7 +286,7 @@ private:
   static Bit32u get_frame_remaining(void);
 
   void process_lists();
-  void process_ed(struct OHCI_ED *, const Bit32u);
+  bx_bool process_ed(struct OHCI_ED *, const Bit32u);
   bx_bool process_td(struct OHCI_TD *, struct OHCI_ED *);
 
 #if BX_USE_USB_OHCI_SMF

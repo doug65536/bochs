@@ -7,7 +7,46 @@
  <!--content starts here-->
  <img src="images/logo.gif" alt="A Window, Tux, and the BSD Daemon" width="160" height="175" align="right">
 
- <BR><font face="arial, helvetica" color="#1e029a" size="4"><b>Latest release:</b> Bochs 2.6.8</font><BR><BR>
+ <BR><font face="arial, helvetica" color="#1e029a" size="4"><b>Latest release:</b> Bochs 2.6.9</font><BR><BR>
+
+Bochs 2.6.9 is an intermediate (bugfix+) release. Here is the summary of changes :
+
+<ul>
+<li>CPU: implemented new instructions and x86 architecture extensions.
+<li>Bugfixes for CPU emulation correctness.
+<li>Added Android host platform support.
+<li>Added USB EHCI device emulation support.
+<li>Added USB floppy (UFI/CBI) support.
+<li>Added ethernet module 'socket', designed to interconnect Bochs instances.
+<li>Show textconfig at runtime in the Bochs VGA window (gui console).
+</ul>
+
+The binary packages for Linux and Windows are built with these features :
+<ul>
+<li> x86-64 emulation with all optimizations enabled
+<li> devices:
+ <ul>
+ <li> chipset: PCI (i430FX / i440FX), ACPI
+ <li> video: Bochs VBE, Cirrus SVGA and Voodoo1
+ <li> sound: SB16 (ISA) and ES1370 (PCI)
+ <li> network: NE2000 (ISA/PCI) and E1000 (PCI)
+ <li> USB: OHCI, UHCI, EHCI, xHCI and 8 pluggable device types
+ <li> other: game port, bus mouse
+ </ul>
+<li> Display libraries:
+ <ul>
+ <li> Linux: nogui, rfb, sdl2, term, vncsrv, wx, x
+ <li> Windows: nogui, rfb, win32
+ </ul>
+</ul>
+
+<a href="http://svn.code.sf.net/p/bochs/code/tags/REL_2_6_9_FINAL/bochs/CHANGES">
+Details on what has changed since version 2.6.8
+</a>
+
+<BR/><BR/>
+
+ <BR><font face="arial, helvetica" color="#1e029a" size="4"><b>Previous release:</b> Bochs 2.6.8</font><BR><BR>
 
 Bochs 2.6.8 is an intermediate (bugfix+) release. Here is the summary of changes :
 
@@ -22,54 +61,10 @@ Bochs 2.6.8 is an intermediate (bugfix+) release. Here is the summary of changes
 <li>Bugfixes in the floppy, lowlevel cdrom, rombios, slirp and win32 gui code.
 </ul>
 
-The binary packages for Linux and Windows are built with these featues :
-<ul>
-<li> x86-64 emulation with all optimizations enabled
-<li> devices:
- <ul>
- <li> chipset: PCI (i430FX / i440FX), ACPI
- <li> video: Bochs VBE, Cirrus SVGA and Voodoo1
- <li> sound: SB16 (ISA) and ES1370 (PCI)
- <li> network: NE2000 (ISA/PCI) and E1000 (PCI)
- <li> USB: OHCI, UHCI, xHCI and 7 pluggable device types
- </ul>
-<li> Display libraries:
- <ul>
- <li> Linux: nogui, rfb, sdl, term, vncsrv, wx, x
- <li> Windows: nogui, rfb, win32
- </ul>
-</ul>
+<BR>
 
 <a href="http://svn.code.sf.net/p/bochs/code/tags/REL_2_6_8_FINAL/bochs/CHANGES">
 Details on what has changed since version 2.6.7
-</a>
-
-<BR/><BR/>
-
- <BR><font face="arial, helvetica" color="#1e029a" size="4"><b>Previous release:</b> Bochs 2.6.7</font><BR><BR>
-
-Bochs 2.6.7 is an intermediate (bugfix+) release. Here is the summary of changes :
-
-<ul>
-<li>CPU: implemented AVX-512BW/AVX-512DQ/AVX-512VL extensions emulation.
-<li>CPU: implemented AVX512-IFMA532 instructions emulation.
-<li>CPU: implemented AVX512-VBMI instructions emulation.
-<li>Bugfixes for CPU emulation correctness
-<li>The VGA update timer and the status LED timer now always use the
-realtime mode independent from the 'clock' option setting.
-<li>Added native SDL2 GUI support to Bochs. To enable configure with --with-sdl2.
-<li>Write enhanced gui debugger settings to file on exit and restore on
-initialization.
-<li>USB xHCI model now emulates a NEC/Renesas uPD720202 device
-<li>ROM BIOS: fixed int74_function() for 4-byte (wheel mouse) packets.
-<li>LGPL'd VGABIOS updated from CVS (fixed building VBE modes list)
-<li>Visual Studio workspace files updated to VS2013Ex format.
-</ul>
-
-<BR>
-
-<a href="http://svn.code.sf.net/p/bochs/code/tags/REL_2_6_7_FINAL/bochs/CHANGES">
-Details on what has changed since version 2.6.6
 </a>
 
  <BR><BR>
@@ -85,7 +80,7 @@ The latest release of Bochs is available in these file formats :<BR>
 <li> Linux source RPM
 </ul>
 You can download any release since March 2001 on the 
-<a href="http://bochs.sourceforge.net/cgi-bin/topper.pl?name=See+All+Releases&url=http://sourceforge.net/project/showfiles.phpqmrkgroup_ideq12580">Releases Page</a>.
+<a href="https://sourceforge.net/projects/bochs/files/bochs/">Files Page on SF</a>.
 
 
 <BR><BR>

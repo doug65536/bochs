@@ -2,8 +2,8 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2010-2014  Benjamin D Lunt (fys [at] fysnet [dot] net)
-//                2011-2015  The Bochs Project
+//  Copyright (C) 2010-2016  Benjamin D Lunt (fys [at] fysnet [dot] net)
+//                2011-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -218,9 +218,11 @@ struct HC_SLOT_CONTEXT {
   struct {
     struct EP_CONTEXT   ep_context;
     // our internal registers follow
-    Bit32u edtla;
-    Bit64u enqueue_pointer;
-    bx_bool  rcs;
+    Bit32u  edtla;
+    Bit64u  enqueue_pointer;
+    bx_bool rcs;
+    bx_bool retry;
+    int     retry_counter;
   } ep_context[32];  // first one is ignored by controller.
 };
 
@@ -266,7 +268,7 @@ enum { PLS_U0 = 0, PLS_U1, PLS_U2, PLS_U3_SUSPENDED, PLS_DISABLED, PLS_RXDETECT,
 // Slot State
 #define SLOT_STATE_DISABLED_ENABLED  0
 #define SLOT_STATE_DEFAULT           1
-#define SLOT_STATE_ADRESSED          2
+#define SLOT_STATE_ADDRESSED         2
 #define SLOT_STATE_CONFIGURED        3
 
 // EP State
@@ -530,7 +532,7 @@ typedef struct {
   #error "ERSTABADD_MASK not defined"
 #endif
 
-class bx_usb_xhci_c : public bx_devmodel_c, public bx_pci_device_stub_c {
+class bx_usb_xhci_c : public bx_pci_device_c {
 public:
   bx_usb_xhci_c();
   virtual ~bx_usb_xhci_c();
@@ -538,8 +540,10 @@ public:
   virtual void reset(unsigned);
   virtual void register_state(void);
   virtual void after_restore_state(void);
-  virtual Bit32u  pci_read_handler(Bit8u address, unsigned io_len);
-  virtual void    pci_write_handler(Bit8u address, Bit32u value, unsigned io_len);
+
+  virtual void pci_write_handler(Bit8u address, Bit32u value, unsigned io_len);
+
+  void event_handler(int event, USBPacket *packet, int port);
 
   static const char *usb_param_handler(bx_param_string_c *param, int set,
                                        const char *oldval, const char *val, int maxlen);
@@ -549,7 +553,8 @@ private:
   Bit8u         devfunc;
   Bit8u         device_change;
   int           rt_conf_id;
-  Bit8u         *device_buffer;
+  int           xhci_timer_index;
+  USBAsync      *packets;
 
   static void reset_hc();
   static void reset_port(int);
@@ -563,8 +568,8 @@ private:
   static void usb_set_connect_status(Bit8u port, int type, bx_bool connected);
 
   static int  broadcast_packet(USBPacket *p, const int port);
-  //static void usb_frame_handler(void *);
-  //void usb_frame_timer(void);
+  static void xhci_timer_handler(void *);
+  void xhci_timer(void);
 
   static void process_transfer_ring(const int slot, const int ep);
   static void process_command_ring(void);
@@ -580,8 +585,8 @@ private:
   static void dump_ep_context(const Bit32u *context, const int slot, const int ep);
   static void copy_slot_from_buffer(struct SLOT_CONTEXT *slot_context, const Bit8u *buffer);
   static void copy_ep_from_buffer(struct EP_CONTEXT *ep_context, const Bit8u *buffer);
-  static void copy_slot_to_buffer(const Bit8u *buffer, const int slot);
-  static void copy_ep_to_buffer(const Bit8u *buffer, const int slot, const int ep);
+  static void copy_slot_to_buffer(Bit32u *buffer, const int slot);
+  static void copy_ep_to_buffer(Bit32u *buffer, const int slot, const int ep);
   static bx_bool validate_slot_context(const struct SLOT_CONTEXT *slot_context);
   static bx_bool validate_ep_context(const struct EP_CONTEXT *ep_context, int speed, int ep_num);
   static int  create_unique_address(const int slot);

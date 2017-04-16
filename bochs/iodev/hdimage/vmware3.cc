@@ -10,7 +10,7 @@
  * Contact: snrrrub@yahoo.com
  *
  * Copyright (C) 2003       Net Integration Technologies, Inc.
- * Copyright (C) 2003-2015  The Bochs Project
+ * Copyright (C) 2003-2017  The Bochs Project
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -224,7 +224,7 @@ int vmware3_image_t::open(const char* _pathname, int flags)
     return -1;
   }
 
-  ::close(file);
+  bx_close_image(file, pathname);
 
   tlb_size  = header.tlb_size_sectors * 512;
   slb_count = (1 << FL_SHIFT) / tlb_size;
@@ -567,9 +567,10 @@ void vmware3_image_t::restore_state(const char *backup_fname)
     sprintf(tempfn, "%s%d", backup_fname, i);
     char *filename = generate_cow_name(pathname, i);
     ret &= hdimage_copy_file(tempfn, filename);
+    strcpy(tempfn, filename);
     delete [] filename;
     if (ret == 0) {
-      BX_PANIC(("Failed to restore vmware3 image '%s'", filename));
+      BX_PANIC(("Failed to restore vmware3 image '%s'", tempfn));
       break;
     }
   }

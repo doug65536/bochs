@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2002-2015  The Bochs Project
+//  Copyright (C) 2002-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -38,7 +38,7 @@
 
 bx_piix3_c *thePci2IsaBridge = NULL;
 
-int CDECL libpci2isa_LTX_plugin_init(plugin_t *plugin, plugintype_t type, int argc, char *argv[])
+int CDECL libpci2isa_LTX_plugin_init(plugin_t *plugin, plugintype_t type)
 {
   if (type == PLUGTYPE_CORE) {
     thePci2IsaBridge = new bx_piix3_c();
@@ -302,11 +302,11 @@ void bx_piix3_c::write(Bit32u address, Bit32u value, unsigned io_len)
 
   switch (address) {
     case 0x00b2:
-#if BX_SUPPORT_PCI
-      DEV_acpi_generate_smi((Bit8u)value);
-#else
-      BX_ERROR(("write %08x: APM command register not supported without ACPI", value));
-#endif
+      if (PLUG_device_present(BX_PLUGIN_ACPI)) {
+        DEV_acpi_generate_smi((Bit8u)value);
+      } else {
+        BX_ERROR(("write 0x%02x: APM command register not supported without ACPI", value));
+      }
       BX_P2I_THIS s.apmc = value & 0xff;
       break;
     case 0x00b3:
@@ -342,18 +342,6 @@ void bx_piix3_c::write(Bit32u address, Bit32u value, unsigned io_len)
   }
 }
 
-// pci configuration space read callback handler
-Bit32u bx_piix3_c::pci_read_handler(Bit8u address, unsigned io_len)
-{
-  Bit32u value = 0;
-
-  for (unsigned i=0; i<io_len; i++) {
-    value |= (BX_P2I_THIS pci_conf[address+i] << (i*8));
-  }
-  BX_DEBUG(("PIIX3 PCI-to-ISA read  register 0x%02x value 0x%08x", address, value));
-  return value;
-}
-
 // pci configuration space write callback handler
 void bx_piix3_c::pci_write_handler(Bit8u address, Bit32u value, unsigned io_len)
 {
@@ -384,7 +372,7 @@ void bx_piix3_c::pci_write_handler(Bit8u address, Bit32u value, unsigned io_len)
         BX_P2I_THIS pci_conf[address+i] = (oldval & ~value8) | 0x02;
         break;
       case 0x4e:
-        if ((value & 0x04) != (oldval & 0x04)) {
+        if ((value8 & 0x04) != (oldval & 0x04)) {
           DEV_mem_set_bios_write((value8 & 0x04) != 0);
         }
         BX_P2I_THIS pci_conf[address+i] = value8;

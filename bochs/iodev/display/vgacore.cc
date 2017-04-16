@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2001-2015  The Bochs Project
+//  Copyright (C) 2001-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -387,13 +387,12 @@ void bx_vgacore_c::after_restore_state(void)
 
 void bx_vgacore_c::determine_screen_dimensions(unsigned *piHeight, unsigned *piWidth)
 {
-  int ai[0x20];
-  int i,h,v;
-  for (i = 0 ; i < 0x19 ; i++)
-   ai[i] = BX_VGA_THIS s.CRTC.reg[i];
+  int h, v;
+#define AI BX_VGA_THIS s.CRTC.reg
 
-  h = (ai[1] + 1) * 8;
-  v = (ai[18] | ((ai[7] & 0x02) << 7) | ((ai[7] & 0x40) << 3)) + 1;
+  h = (AI[1] + 1) * 8;
+  v = (AI[18] | ((AI[7] & 0x02) << 7) | ((AI[7] & 0x40) << 3)) + 1;
+#undef AI
 
   if (BX_VGA_THIS s.graphics_ctrl.shift_reg == 0) {
     *piWidth = 640;
@@ -1300,7 +1299,9 @@ void bx_vgacore_c::write(Bit32u address, Bit32u value, unsigned io_len, bx_bool 
 void bx_vgacore_c::set_override(bx_bool enabled, void *dev)
 {
   BX_VGA_THIS s.vga_override = enabled;
+#if BX_SUPPORT_PCI
   BX_VGA_THIS s.nvgadev = (bx_nonvga_device_c*)dev;
+#endif
   if (enabled) {
     bx_virt_timer.deactivate_timer(BX_VGA_THIS timer_id);
   } else {

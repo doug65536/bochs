@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2001-2015  The Bochs Project
+//  Copyright (C) 2001-2016  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -276,8 +276,10 @@ public:
   void error(const char *fmt, ...)  BX_CPP_AttrPrintf(2, 3);
   void panic(const char *fmt, ...)  BX_CPP_AttrPrintf(2, 3);
   void ldebug(const char *fmt, ...) BX_CPP_AttrPrintf(2, 3);
-  void fatal (const char *prefix, const char *fmt, va_list ap, int exit_status);
-  void ask (int level, const char *prefix, const char *fmt, va_list ap);
+  void fatal1(const char *fmt, ...) BX_CPP_AttrPrintf(2, 3);
+  void fatal(int level, const char *prefix, const char *fmt, va_list ap, int exit_status);
+  void warn(int level, const char *prefix, const char *fmt, va_list ap);
+  void ask(int level, const char *prefix, const char *fmt, va_list ap);
   void put(const char *p);
   void put(const char *n, const char *p);
   void setio(class iofunctions *);
@@ -334,7 +336,8 @@ public:
   void set_log_action(int loglevel, int action);
   const char *getlevel(int i) const;
   const char *getaction(int i) const;
-  
+  int isaction(const char *val) const;
+
 protected:
   int n_logfn;
 #define MAX_LOGFNS 512
@@ -355,6 +358,7 @@ typedef class iofunctions iofunc_t;
 #define BX_DEBUG(x)
 #define BX_ERROR(x)
 #define BX_PANIC(x) (LOG_THIS panic) x
+#define BX_FATAL(x) (LOG_THIS fatal1) x
 
 #define BX_ASSERT(x)
 
@@ -364,6 +368,7 @@ typedef class iofunctions iofunc_t;
 #define BX_DEBUG(x) (LOG_THIS ldebug) x
 #define BX_ERROR(x) (LOG_THIS error) x
 #define BX_PANIC(x) (LOG_THIS panic) x
+#define BX_FATAL(x) (LOG_THIS fatal1) x
 
 #if BX_ASSERT_ENABLE
   #define BX_ASSERT(x) do {if (!(x)) BX_PANIC(("failed assertion \"%s\" at %s:%d\n", #x, __FILE__, __LINE__));} while (0)

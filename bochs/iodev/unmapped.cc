@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2001-2014  The Bochs Project
+//  Copyright (C) 2001-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -31,7 +31,7 @@
 
 bx_unmapped_c *theUnmappedDevice = NULL;
 
-int CDECL libunmapped_LTX_plugin_init(plugin_t *plugin, plugintype_t type, int argc, char *argv[])
+int CDECL libunmapped_LTX_plugin_init(plugin_t *plugin, plugintype_t type)
 {
   theUnmappedDevice = new bx_unmapped_c();
   BX_REGISTER_DEVICE_DEVMODEL(plugin, type, theUnmappedDevice, BX_PLUGIN_UNMAPPED);
@@ -252,8 +252,7 @@ void bx_unmapped_c::write(Bit32u address, Bit32u value, unsigned io_len)
       }
       if (BX_UM_THIS s.shutdown == 8) {
         bx_user_quit = 1;
-        LOG_THIS setonoff(LOGLEV_PANIC, ACT_FATAL);
-        BX_PANIC(("Shutdown port: shutdown requested"));
+        BX_FATAL(("Shutdown port: shutdown requested"));
       }
       break;
 /*

@@ -3,7 +3,7 @@
 /////////////////////////////////////////////////////////////////////////
 //
 //  Copyright (C) 2009-2015  Benjamin D Lunt (fys [at] fysnet [dot] net)
-//                2009-2015  The Bochs Project
+//                2009-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -43,9 +43,6 @@
 
 bx_usb_uhci_c* theUSB_UHCI = NULL;
 
-const Bit8u uhci_iomask[32] = {2, 1, 2, 1, 2, 1, 2, 0, 4, 0, 0, 0, 1, 0, 0, 0,
-                              3, 1, 3, 1, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
 // builtin configuration handling functions
 
 Bit32s usb_uhci_options_parser(const char *context, int num_params, char *params[])
@@ -82,7 +79,7 @@ Bit32s usb_uhci_options_save(FILE *fp)
 
 // device plugin entry points
 
-int CDECL libusb_uhci_LTX_plugin_init(plugin_t *plugin, plugintype_t type, int argc, char *argv[])
+int CDECL libusb_uhci_LTX_plugin_init(plugin_t *plugin, plugintype_t type)
 {
   theUSB_UHCI = new bx_usb_uhci_c();
   BX_REGISTER_DEVICE_DEVMODEL(plugin, type, theUSB_UHCI, BX_PLUGIN_USB_UHCI);
@@ -218,12 +215,7 @@ void bx_usb_uhci_c::init_device(Bit8u port, bx_list_c *portconf)
 
 void bx_usb_uhci_c::remove_device(Bit8u port)
 {
-  char pname[BX_PATHNAME_LEN];
-
   if (BX_UHCI_THIS hub.usb_port[port].device != NULL) {
-    sprintf(pname, "usb_uhci.hub.port%d.device", port+1);
-    bx_list_c *devlist = (bx_list_c*)SIM->get_param(pname, SIM->get_bochs_root());
-    devlist->clear();
     delete BX_UHCI_THIS hub.usb_port[port].device;
     BX_UHCI_THIS hub.usb_port[port].device = NULL;
   }

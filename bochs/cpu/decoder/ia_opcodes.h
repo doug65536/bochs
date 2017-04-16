@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//   Copyright (c) 2008-2016 Stanislav Shwartsman
+//   Copyright (c) 2008-2017 Stanislav Shwartsman
 //          Written by Stanislav Shwartsman [sshwarts at sourceforge net]
 //
 //  This library is free software; you can redistribute it and/or
@@ -290,6 +290,7 @@ bx_define_opcode(BX_IA_HLT, NULL, &BX_CPU_C::HLT, 0, OP_NONE, OP_NONE, OP_NONE, 
 bx_define_opcode(BX_IA_CLFLUSH, &BX_CPU_C::CLFLUSH, &BX_CPU_C::BxError, BX_ISA_CLFLUSH, OP_Mb, OP_NONE, OP_NONE, OP_NONE, 0)
 bx_define_opcode(BX_IA_CLFLUSHOPT, &BX_CPU_C::CLFLUSH, &BX_CPU_C::BxError, BX_ISA_CLFLUSHOPT, OP_Mb, OP_NONE, OP_NONE, OP_NONE, 0)
 bx_define_opcode(BX_IA_CLWB, &BX_CPU_C::CLFLUSH, &BX_CPU_C::BxError, BX_ISA_CLWB, OP_Mb, OP_NONE, OP_NONE, OP_NONE, 0)
+bx_define_opcode(BX_IA_CLZERO, &BX_CPU_C::CLZERO, &BX_CPU_C::BxError, BX_ISA_CLZERO, OP_NONE, OP_NONE, OP_NONE, OP_NONE, 0)
 
 bx_define_opcode(BX_IA_ENTER_Op16_IwIb, NULL, &BX_CPU_C::ENTER16_IwIb, 0, OP_Iw, OP_Ib2, OP_NONE, OP_NONE, 0)
 bx_define_opcode(BX_IA_ENTER_Op32_IwIb, NULL, &BX_CPU_C::ENTER32_IwIb, 0, OP_Iw, OP_Ib2, OP_NONE, OP_NONE, 0)
@@ -616,6 +617,9 @@ bx_define_opcode(BX_IA_SYSEXIT, NULL, &BX_CPU_C::SYSEXIT, BX_ISA_SYSENTER_SYSEXI
 bx_define_opcode(BX_IA_MONITOR, &BX_CPU_C::BxError, &BX_CPU_C::MONITOR, BX_ISA_MONITOR_MWAIT, OP_NONE, OP_NONE, OP_NONE, OP_NONE, 0)
 bx_define_opcode(BX_IA_MWAIT, &BX_CPU_C::BxError, &BX_CPU_C::MWAIT, BX_ISA_MONITOR_MWAIT, OP_NONE, OP_NONE, OP_NONE, OP_NONE, BX_TRACE_END)
 
+bx_define_opcode(BX_IA_MONITORX, &BX_CPU_C::BxError, &BX_CPU_C::MONITOR, BX_ISA_MONITORX_MWAITX, OP_NONE, OP_NONE, OP_NONE, OP_NONE, 0)
+bx_define_opcode(BX_IA_MWAITX, &BX_CPU_C::BxError, &BX_CPU_C::MWAIT, BX_ISA_MONITORX_MWAITX, OP_NONE, OP_NONE, OP_NONE, OP_NONE, BX_TRACE_END)
+
 bx_define_opcode(BX_IA_FWAIT, NULL, &BX_CPU_C::FWAIT, BX_ISA_X87, OP_NONE, OP_NONE, OP_NONE, OP_NONE, 0)
 #if BX_SUPPORT_FPU
 bx_define_opcode(BX_IA_FLD_STi, NULL, &BX_CPU_C::FLD_STi, BX_ISA_X87, OP_NONE, OP_STi, OP_NONE, OP_NONE, 0)
@@ -867,7 +871,7 @@ bx_define_opcode(BX_IA_PI2FW_PqQq, &BX_CPU_C::PI2FW_PqQq, &BX_CPU_C::PI2FW_PqQq,
 bx_define_opcode(BX_IA_PMULHRW_PqQq, &BX_CPU_C::PMULHRW_PqQq, &BX_CPU_C::PMULHRW_PqQq, BX_ISA_3DNOW, OP_Pq, OP_Qq, OP_NONE, OP_NONE, 0)
 bx_define_opcode(BX_IA_PSWAPD_PqQq, &BX_CPU_C::PSWAPD_PqQq, &BX_CPU_C::PSWAPD_PqQq, BX_ISA_3DNOW, OP_Pq, OP_Qq, OP_NONE, OP_NONE, 0)
 #endif
-bx_define_opcode(BX_IA_PREFETCHW, &BX_CPU_C::NOP, &BX_CPU_C::NOP, 0, OP_Mb, OP_NONE, OP_NONE, OP_NONE, 0) // NOP even when no 3DNow!
+bx_define_opcode(BX_IA_PREFETCHW_Mb, &BX_CPU_C::NOP, &BX_CPU_C::NOP, 0, OP_Mb, OP_NONE, OP_NONE, OP_NONE, 0) // NOP even when no 3DNow!
 
 bx_define_opcode(BX_IA_SYSCALL_LEGACY, NULL, &BX_CPU_C::SYSCALL, BX_ISA_SYSCALL_SYSRET_LEGACY, OP_NONE, OP_NONE, OP_NONE, OP_NONE, BX_TRACE_END)
 bx_define_opcode(BX_IA_SYSRET_LEGACY, NULL, &BX_CPU_C::SYSRET, BX_ISA_SYSCALL_SYSRET_LEGACY, OP_NONE, OP_NONE, OP_NONE, OP_NONE, BX_TRACE_END)
@@ -908,8 +912,9 @@ bx_define_opcode(BX_IA_CMOVS_GdEd, &BX_CPU_C::LOAD_Ed, &BX_CPU_C::CMOVS_GdEdR, B
 bx_define_opcode(BX_IA_CMOVZ_GdEd, &BX_CPU_C::LOAD_Ed, &BX_CPU_C::CMOVZ_GdEdR, BX_ISA_P6, OP_Gd, OP_Ed, OP_NONE, OP_NONE, 0)
 
 bx_define_opcode(BX_IA_RDPMC, NULL, &BX_CPU_C::RDPMC, BX_ISA_P6, OP_NONE, OP_NONE, OP_NONE, OP_NONE, 0)
-bx_define_opcode(BX_IA_UD2A, &BX_CPU_C::UndefinedOpcode, &BX_CPU_C::UndefinedOpcode, 0, OP_NONE, OP_NONE, OP_NONE, OP_NONE, BX_TRACE_END)
-bx_define_opcode(BX_IA_UD2B, &BX_CPU_C::UndefinedOpcode, &BX_CPU_C::UndefinedOpcode, 0, OP_NONE, OP_NONE, OP_NONE, OP_NONE, BX_TRACE_END)
+bx_define_opcode(BX_IA_UD0, &BX_CPU_C::UndefinedOpcode, &BX_CPU_C::UndefinedOpcode, 0, OP_NONE, OP_NONE, OP_NONE, OP_NONE, BX_TRACE_END)
+bx_define_opcode(BX_IA_UD1, &BX_CPU_C::UndefinedOpcode, &BX_CPU_C::UndefinedOpcode, 0, OP_NONE, OP_NONE, OP_NONE, OP_NONE, BX_TRACE_END)
+bx_define_opcode(BX_IA_UD2, &BX_CPU_C::UndefinedOpcode, &BX_CPU_C::UndefinedOpcode, 0, OP_NONE, OP_NONE, OP_NONE, OP_NONE, BX_TRACE_END)
 // P6 new instructions
 
 // FXSAVE
@@ -920,11 +925,11 @@ bx_define_opcode(BX_IA_FXRSTOR, &BX_CPU_C::FXRSTOR, &BX_CPU_C::BxError, BX_ISA_S
 // SSE
 bx_define_opcode(BX_IA_LDMXCSR, &BX_CPU_C::LDMXCSR, &BX_CPU_C::BxError, BX_ISA_SSE, OP_Md, OP_NONE, OP_NONE, OP_NONE, BX_PREPARE_SSE)
 bx_define_opcode(BX_IA_STMXCSR, &BX_CPU_C::STMXCSR, &BX_CPU_C::BxError, BX_ISA_SSE, OP_Md, OP_NONE, OP_NONE, OP_NONE, BX_PREPARE_SSE)
-bx_define_opcode(BX_IA_PREFETCH, &BX_CPU_C::PREFETCH, &BX_CPU_C::NOP, BX_ISA_SSE, OP_Mb, BX_SRC_NNN, OP_NONE, OP_NONE, 0)
-bx_define_opcode(BX_IA_PREFETCHT0, &BX_CPU_C::PREFETCH, &BX_CPU_C::NOP, BX_ISA_SSE, OP_Mb, BX_SRC_NNN, OP_NONE, OP_NONE, 0)
-bx_define_opcode(BX_IA_PREFETCHT1, &BX_CPU_C::PREFETCH, &BX_CPU_C::NOP, BX_ISA_SSE, OP_Mb, BX_SRC_NNN, OP_NONE, OP_NONE, 0)
-bx_define_opcode(BX_IA_PREFETCHT2, &BX_CPU_C::PREFETCH, &BX_CPU_C::NOP, BX_ISA_SSE, OP_Mb, BX_SRC_NNN, OP_NONE, OP_NONE, 0)
-bx_define_opcode(BX_IA_PREFETCHNTA, &BX_CPU_C::PREFETCH, &BX_CPU_C::NOP, BX_ISA_SSE, OP_Mb, BX_SRC_NNN, OP_NONE, OP_NONE, 0)
+bx_define_opcode(BX_IA_PREFETCH_Mb, &BX_CPU_C::PREFETCH, &BX_CPU_C::NOP, BX_ISA_SSE, OP_Mb, BX_SRC_NNN, OP_NONE, OP_NONE, 0)
+bx_define_opcode(BX_IA_PREFETCHT0_Mb, &BX_CPU_C::PREFETCH, &BX_CPU_C::NOP, BX_ISA_SSE, OP_Mb, BX_SRC_NNN, OP_NONE, OP_NONE, 0)
+bx_define_opcode(BX_IA_PREFETCHT1_Mb, &BX_CPU_C::PREFETCH, &BX_CPU_C::NOP, BX_ISA_SSE, OP_Mb, BX_SRC_NNN, OP_NONE, OP_NONE, 0)
+bx_define_opcode(BX_IA_PREFETCHT2_Mb, &BX_CPU_C::PREFETCH, &BX_CPU_C::NOP, BX_ISA_SSE, OP_Mb, BX_SRC_NNN, OP_NONE, OP_NONE, 0)
+bx_define_opcode(BX_IA_PREFETCHNTA_Mb, &BX_CPU_C::PREFETCH, &BX_CPU_C::NOP, BX_ISA_SSE, OP_Mb, BX_SRC_NNN, OP_NONE, OP_NONE, 0)
 // SSE
 
 // SSE and SSE2
@@ -1294,6 +1299,8 @@ bx_define_opcode(BX_IA_XSAVEC, &BX_CPU_C::XSAVEC, &BX_CPU_C::BxError, BX_ISA_XSA
 bx_define_opcode(BX_IA_XSETBV, &BX_CPU_C::BxError, &BX_CPU_C::XSETBV, BX_ISA_XSAVE, OP_NONE, OP_NONE, OP_NONE, OP_NONE, BX_TRACE_END)
 bx_define_opcode(BX_IA_XGETBV, &BX_CPU_C::BxError, &BX_CPU_C::XGETBV, BX_ISA_XSAVE, OP_NONE, OP_NONE, OP_NONE, OP_NONE, 0)
 bx_define_opcode(BX_IA_XSAVEOPT, &BX_CPU_C::XSAVE, &BX_CPU_C::BxError, BX_ISA_XSAVEOPT, OP_M, OP_NONE, OP_NONE, OP_NONE, 0)
+bx_define_opcode(BX_IA_XSAVES, &BX_CPU_C::XSAVEC, &BX_CPU_C::BxError, BX_ISA_XSAVES, OP_M, OP_NONE, OP_NONE, OP_NONE, 0)
+bx_define_opcode(BX_IA_XRSTORS, &BX_CPU_C::XRSTOR, &BX_CPU_C::BxError, BX_ISA_XSAVES, OP_M, OP_NONE, OP_NONE, OP_NONE, 0)
 
 #if BX_CPU_LEVEL >= 6
 
@@ -1605,9 +1612,6 @@ bx_define_opcode(BX_IA_WRPKRU, &BX_CPU_C::BxError, &BX_CPU_C::WRPKRU, BX_ISA_PKU
 #endif
 
 bx_define_opcode(BX_IA_RDPID_Ed, NULL, &BX_CPU_C::RDPID_Ed, BX_ISA_RDPID, OP_Ed, OP_NONE, OP_NONE, OP_NONE, 0)
-#if BX_SUPPORT_X86_64
-bx_define_opcode(BX_IA_RDPID_Eq, NULL, &BX_CPU_C::RDPID_Ed, BX_ISA_RDPID, OP_Eq, OP_NONE, OP_NONE, OP_NONE, 0)
-#endif
 
 #if BX_SUPPORT_AVX && BX_CPU_LEVEL >= 6
 // AVX1/AVX2
@@ -3595,6 +3599,9 @@ bx_define_opcode(BX_IA_V512_VPMOVB2M_KGqWdq, &BX_CPU_C::BxError, &BX_CPU_C::VPMO
 bx_define_opcode(BX_IA_V512_VPMOVW2M_KGdWdq, &BX_CPU_C::BxError, &BX_CPU_C::VPMOVW2M_KGdWdqR, BX_ISA_AVX512_BW, OP_KGd, OP_Wdq, OP_NONE, OP_NONE, BX_PREPARE_EVEX_NO_SAE | BX_PREPARE_EVEX_NO_BROADCAST)
 bx_define_opcode(BX_IA_V512_VPMOVD2M_KGwWdq, &BX_CPU_C::BxError, &BX_CPU_C::VPMOVD2M_KGwWdqR, BX_ISA_AVX512_DQ, OP_KGw, OP_Wdq, OP_NONE, OP_NONE, BX_PREPARE_EVEX_NO_SAE | BX_PREPARE_EVEX_NO_BROADCAST)
 bx_define_opcode(BX_IA_V512_VPMOVQ2M_KGbWdq, &BX_CPU_C::BxError, &BX_CPU_C::VPMOVQ2M_KGbWdqR, BX_ISA_AVX512_DQ, OP_KGb, OP_Wdq, OP_NONE, OP_NONE, BX_PREPARE_EVEX_NO_SAE | BX_PREPARE_EVEX_NO_BROADCAST)
+
+bx_define_opcode(BX_IA_V512_VPOPCNTD_VdqWdq_Kmask, &BX_CPU_C::LOAD_BROADCAST_VectorD, &BX_CPU_C::VPOPCNTD_MASK_VdqWdqR, BX_ISA_AVX512_VPOPCNTDQ, OP_Vdq, OP_mVdq32, OP_NONE, OP_NONE, BX_PREPARE_EVEX_NO_SAE)
+bx_define_opcode(BX_IA_V512_VPOPCNTQ_VdqWdq_Kmask, &BX_CPU_C::LOAD_BROADCAST_VectorQ, &BX_CPU_C::VPOPCNTQ_MASK_VdqWdqR, BX_ISA_AVX512_VPOPCNTDQ, OP_Vdq, OP_mVdq64, OP_NONE, OP_NONE, BX_PREPARE_EVEX_NO_SAE)
 // VexW alias
 
 // VexW64 aliased

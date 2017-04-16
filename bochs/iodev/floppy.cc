@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2002-2015  The Bochs Project
+//  Copyright (C) 2002-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -104,7 +104,7 @@ static Bit16u drate_in_k[4] = {
 };
 
 
-int CDECL libfloppy_LTX_plugin_init(plugin_t *plugin, plugintype_t type, int argc, char *argv[])
+int CDECL libfloppy_LTX_plugin_init(plugin_t *plugin, plugintype_t type)
 {
   if (type == PLUGTYPE_CORE) {
     theFloppyController = new bx_floppy_ctrl_c();
@@ -285,7 +285,7 @@ void bx_floppy_ctrl_c::init(void)
 
   if (BX_FD_THIS s.floppy_timer_index == BX_NULL_TIMER_HANDLE) {
     BX_FD_THIS s.floppy_timer_index =
-      bx_pc_system.register_timer(this, timer_handler, 250, 0, 0, "floppy");
+      DEV_register_timer(this, timer_handler, 250, 0, 0, "floppy");
   }
   /* phase out s.non_dma in favor of using FD_MS_NDMA, more like hardware */
   BX_FD_THIS s.main_status_reg &= ~FD_MS_NDMA;  // enable DMA from start
@@ -1351,7 +1351,19 @@ Bit16u bx_floppy_ctrl_c::dma_read(Bit8u *buffer, Bit16u maxlen)
     BX_FD_THIS s.format_count--;
     switch (3 - (BX_FD_THIS s.format_count & 0x03)) {
       case 0:
-        BX_FD_THIS s.cylinder[drive] = *buffer;
+        if (*buffer < BX_FD_THIS s.media[drive].tracks) {
+          BX_FD_THIS s.cylinder[drive] = *buffer;
+        } else {
+          BX_ERROR(("format track: cylinder out of range"));
+          if (!(BX_FD_THIS s.main_status_reg & FD_MS_NDMA)) {
+            DEV_dma_set_drq(FLOPPY_DMA_CHAN, 0);
+          }
+          BX_FD_THIS s.status_reg0 = 0x40 | (BX_FD_THIS s.head[drive]<<2) | drive;
+          BX_FD_THIS s.status_reg1 = 0x04;
+          BX_FD_THIS s.status_reg2 = 0x00;
+          enter_result_phase();
+          return 1;
+        }
         break;
       case 1:
         if (*buffer != BX_FD_THIS s.head[drive])
@@ -1403,6 +1415,11 @@ Bit16u bx_floppy_ctrl_c::dma_read(Bit8u *buffer, Bit16u maxlen)
         BX_FD_THIS s.status_reg1 = 0x27; // 0010 0111
         // ST2: CRCE=1, SERR=1, BCYL=1, NDAM=1.
         BX_FD_THIS s.status_reg2 = 0x31; // 0011 0001
+        if (!(BX_FD_THIS s.main_status_reg & FD_MS_NDMA)) {
+          DEV_dma_set_drq(FLOPPY_DMA_CHAN, 0);
+        } else {
+          BX_FD_THIS s.main_status_reg &= ~FD_MS_NDMA;
+        }
         enter_result_phase();
         return 1;
       }

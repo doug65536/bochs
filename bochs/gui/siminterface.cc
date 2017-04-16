@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2002-2015  The Bochs Project
+//  Copyright (C) 2002-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -100,6 +100,7 @@ public:
   virtual int get_log_action(int mod, int level);
   virtual void set_log_action(int mod, int level, int action);
   virtual const char *get_action_name(int action);
+  virtual int is_action_name(const char *val);
   virtual int get_default_log_action(int level) {
     return logfunctions::get_default_action(level);
   }
@@ -123,7 +124,7 @@ public:
   virtual void set_notify_callback(bxevent_handler func, void *arg);
   virtual void get_notify_callback(bxevent_handler *func, void **arg);
   virtual BxEvent* sim_to_ci_event(BxEvent *event);
-  virtual int log_ask(const char *prefix, int level, const char *msg);
+  virtual int log_dlg(const char *prefix, int level, const char *msg, int mode);
   virtual void log_msg(const char *prefix, int level, const char *msg);
   virtual void set_log_viewer(bx_bool val) { bx_log_viewer = val; }
   virtual bx_bool has_log_viewer() const { return bx_log_viewer; }
@@ -217,6 +218,10 @@ public:
                                      const char *param, int maxports, bx_list_c *base);
   virtual int  write_param_list(FILE *fp, bx_list_c *base, const char *optname, bx_bool multiline);
   virtual int  write_usb_options(FILE *fp, int maxports, bx_list_c *base);
+#if BX_USE_GUI_CONSOLE
+  virtual int  bx_printf(const char *fmt, ...);
+  virtual char* bx_gets(char *s, int size, FILE *stream);
+#endif
 
 private:
   bx_bool save_sr_param(FILE *fp, bx_param_c *node, const char *sr_path, int level);
@@ -420,6 +425,11 @@ const char *bx_real_sim_c::get_action_name(int action)
   return io->getaction(action);
 }
 
+int bx_real_sim_c::is_action_name(const char *val)
+{
+  return io->isaction(val);
+}
+
 const char *bx_real_sim_c::get_log_level_name(int level)
 {
   return io->getlevel(level);
@@ -575,14 +585,14 @@ BxEvent *bx_real_sim_c::sim_to_ci_event(BxEvent *event)
   }
 }
 
-// returns 0 for continue, 1 for alwayscontinue, 2 for die.
-int bx_real_sim_c::log_ask(const char *prefix, int level, const char *msg)
+int bx_real_sim_c::log_dlg(const char *prefix, int level, const char *msg, int mode)
 {
   BxEvent be;
-  be.type = BX_SYNC_EVT_LOG_ASK;
+  be.type = BX_SYNC_EVT_LOG_DLG;
   be.u.logmsg.prefix = prefix;
   be.u.logmsg.level = level;
   be.u.logmsg.msg = msg;
+  be.u.logmsg.mode = mode;
   // default return value in case something goes wrong.
   be.retcode = BX_LOG_NOTIFY_FAILED;
   // calling notify
@@ -594,7 +604,7 @@ void bx_real_sim_c::log_msg(const char *prefix, int level, const char *msg)
 {
   if (SIM->has_log_viewer()) {
     // send message to the log viewer
-    char *logmsg = (char*)malloc(strlen(prefix) + strlen(msg) + 4);
+    char *logmsg = new char[strlen(prefix) + strlen(msg) + 4];
     sprintf(logmsg, "%s %s\n", prefix, msg);
     BxEvent *event = new BxEvent();
     event->type = BX_ASYNC_EVT_LOG_MSG;
@@ -881,15 +891,8 @@ int bx_real_sim_c::begin_simulation(int argc, char *argv[])
 
 int bx_real_sim_c::register_runtime_config_handler(void *dev, rt_conf_handler_t handler)
 {
-  rt_conf_entry_t *rt_conf_entry;
-
-  rt_conf_entry = (rt_conf_entry_t *)malloc(sizeof(rt_conf_entry_t));
-  if (rt_conf_entry == NULL) {
-    BX_PANIC(("can't allocate rt_conf_entry_t"));
-    return -1;
-  }
-
-  rt_conf_entry->id = rt_conf_id;;
+  rt_conf_entry_t *rt_conf_entry = new rt_conf_entry_t;
+  rt_conf_entry->id = rt_conf_id;
   rt_conf_entry->device = dev;
   rt_conf_entry->handler = handler;
   rt_conf_entry->next = NULL;
@@ -918,7 +921,7 @@ void bx_real_sim_c::unregister_runtime_config_handler(int id)
       } else {
         rt_conf_entries = curr->next;
       }
-      free(curr);
+      delete curr;
       break;
     } else {
       prev = curr;
@@ -973,14 +976,7 @@ bx_bool bx_real_sim_c::is_addon_option(const char *keyword)
 bx_bool bx_real_sim_c::register_addon_option(const char *keyword, addon_option_parser_t parser,
                                              addon_option_save_t save_func)
 {
-  addon_option_t *addon_option;
-
-  addon_option = (addon_option_t *)malloc(sizeof(addon_option_t));
-  if (addon_option == NULL) {
-    BX_PANIC(("can't allocate addon_option_t"));
-    return 0;
-  }
-
+  addon_option_t *addon_option = new addon_option_t;
   addon_option->name = keyword;
   addon_option->parser = parser;
   addon_option->savefn = save_func;
@@ -993,7 +989,7 @@ bx_bool bx_real_sim_c::register_addon_option(const char *keyword, addon_option_p
 
     while (temp->next) {
       if (!strcmp(temp->name, keyword)) {
-        free(addon_option);
+        delete addon_option;
         return 0;
       }
       temp = temp->next;
@@ -1014,7 +1010,7 @@ bx_bool bx_real_sim_c::unregister_addon_option(const char *keyword)
       } else {
         prev->next = addon_option->next;
       }
-      free(addon_option);
+      delete addon_option;
       return 1;
     } else {
       prev = addon_option;
@@ -1025,9 +1021,7 @@ bx_bool bx_real_sim_c::unregister_addon_option(const char *keyword)
 
 Bit32s bx_real_sim_c::parse_addon_option(const char *context, int num_params, char *params [])
 {
-  addon_option_t *addon_option;
-
-  for (addon_option = addon_options; addon_option; addon_option = addon_option->next) {
+  for (addon_option_t *addon_option = addon_options; addon_option; addon_option = addon_option->next) {
     if ((!strcmp(addon_option->name, params[0])) &&
         (addon_option->parser != NULL)) {
       return (*addon_option->parser)(context, num_params, params);
@@ -1039,9 +1033,7 @@ Bit32s bx_real_sim_c::parse_addon_option(const char *context, int num_params, ch
 
 Bit32s bx_real_sim_c::save_addon_options(FILE *fp)
 {
-  addon_option_t *addon_option;
-
-  for (addon_option = addon_options; addon_option; addon_option = addon_option->next) {
+  for (addon_option_t *addon_option = addon_options; addon_option; addon_option = addon_option->next) {
     if (addon_option->savefn != NULL) {
       (*addon_option->savefn)(fp);
     }
@@ -1074,9 +1066,9 @@ void bx_real_sim_c::init_save_restore()
 
 void bx_real_sim_c::cleanup_save_restore()
 {
-  bx_list_c *list;
+  bx_list_c *list = get_bochs_root();
 
-  if ((list = get_bochs_root()) != NULL) {
+  if (list != NULL) {
     list->clear();
   }
 }
@@ -1175,16 +1167,10 @@ bx_bool bx_real_sim_c::restore_logopts()
             } else if (!strncmp(string, "PANIC=", 6)) {
               type = LOGLEV_PANIC;
             }
-            if (!strcmp(string+j, "ignore")) {
-              action = ACT_IGNORE;
-            } else if (!strcmp(string+j, "report")) {
-              action = ACT_REPORT;
-            } else if (!strcmp(string+j, "ask")) {
-              action = ACT_ASK;
-            } else if (!strcmp(string+j, "fatal")) {
-              action = ACT_FATAL;
+            action = is_action_name(string+j);
+            if (action >= ACT_IGNORE) {
+              set_log_action(dev, type, action);
             }
-            set_log_action(dev, type, action);
           } else {
             if (i == 1) {
               BX_ERROR(("restore_logopts(): log module '%s' not found", devname));
@@ -1589,3 +1575,31 @@ int bx_real_sim_c::write_usb_options(FILE *fp, int maxports, bx_list_c *base)
 {
   return bx_write_usb_options(fp, maxports, base);
 }
+
+#if BX_USE_GUI_CONSOLE
+int bx_real_sim_c::bx_printf(const char *fmt, ...)
+{
+  va_list ap;
+  char buf[1025];
+
+  va_start(ap, fmt);
+  vsnprintf(buf, 1024, fmt, ap);
+  va_end(ap);
+  if (get_init_done()) {
+    if (bx_gui->has_gui_console()) {
+      return bx_gui->bx_printf(buf);
+    }
+  }
+  return printf(buf);
+}
+
+char* bx_real_sim_c::bx_gets(char *s, int size, FILE *stream)
+{
+  if (get_init_done()) {
+    if (bx_gui->has_gui_console()) {
+      return bx_gui->bx_gets(s, size);
+    }
+  }
+  return fgets(s, size, stream);
+}
+#endif

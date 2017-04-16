@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2001-2015  The Bochs Project
+//  Copyright (C) 2001-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -132,7 +132,7 @@ Bit32s ne2k_options_save(FILE *fp)
 
 // device plugin entry points
 
-int CDECL libne2k_LTX_plugin_init(plugin_t *plugin, plugintype_t type, int argc, char *argv[])
+int CDECL libne2k_LTX_plugin_init(plugin_t *plugin, plugintype_t type)
 {
   theNE2kDevice = new bx_ne2k_c();
   BX_REGISTER_DEVICE_DEVMODEL(plugin, type, theNE2kDevice, BX_PLUGIN_NE2K);
@@ -215,8 +215,8 @@ void bx_ne2k_c::init(void)
 
   if (BX_NE2K_THIS s.tx_timer_index == BX_NULL_TIMER_HANDLE) {
     BX_NE2K_THIS s.tx_timer_index =
-      bx_pc_system.register_timer(this, tx_timer_handler, 0,
-                                  0,0, "ne2k"); // one-shot, inactive
+      DEV_register_timer(this, tx_timer_handler, 0, 0, 0,
+                         "ne2k"); // one-shot, inactive
   }
   // Register the IRQ and i/o port addresses
   if (!BX_NE2K_THIS s.pci_enabled) {
@@ -1695,19 +1695,6 @@ void bx_ne2k_c::set_irq_level(bx_bool level)
 }
 
 #if BX_SUPPORT_PCI
-
-// pci configuration space read callback handler
-Bit32u bx_ne2k_c::pci_read_handler(Bit8u address, unsigned io_len)
-{
-  Bit32u value = 0;
-
-  for (unsigned i=0; i<io_len; i++) {
-    value |= (BX_NE2K_THIS pci_conf[address+i] << (i*8));
-  }
-  BX_DEBUG(("NE2000 PCI NIC read  register 0x%02x value 0x%08x", address, value));
-  return value;
-}
-
 // pci configuration space write callback handler
 void bx_ne2k_c::pci_write_handler(Bit8u address, Bit32u value, unsigned io_len)
 {
@@ -1780,7 +1767,6 @@ void bx_ne2k_c::pci_write_handler(Bit8u address, Bit32u value, unsigned io_len)
   else if (io_len == 4)
     BX_DEBUG(("write PCI register 0x%02x value 0x%08x", address, value));
 }
-
 #endif /* BX_SUPPORT_PCI */
 
 #if BX_DEBUGGER

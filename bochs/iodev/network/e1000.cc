@@ -12,7 +12,7 @@
 //  Copyright (c) 2007 Dan Aloni
 //  Copyright (c) 2004 Antony T Curtis
 //
-//  Copyright (C) 2011-2015  The Bochs Project
+//  Copyright (C) 2011-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -343,7 +343,7 @@ Bit32s e1000_options_save(FILE *fp)
 
 // device plugin entry points
 
-int CDECL libe1000_LTX_plugin_init(plugin_t *plugin, plugintype_t type, int argc, char *argv[])
+int CDECL libe1000_LTX_plugin_init(plugin_t *plugin, plugintype_t type)
 {
   theE1000Device = new bx_e1000_c();
   BX_REGISTER_DEVICE_DEVMODEL(plugin, type, theE1000Device, BX_PLUGIN_E1000);
@@ -473,8 +473,7 @@ void bx_e1000_c::init(void)
 
   if (BX_E1000_THIS s.tx_timer_index == BX_NULL_TIMER_HANDLE) {
     BX_E1000_THIS s.tx_timer_index =
-      bx_pc_system.register_timer(this, tx_timer_handler, 0,
-                                  0, 0, "e1000"); // one-shot, inactive
+      DEV_register_timer(this, tx_timer_handler, 0, 0, 0, "e1000"); // one-shot, inactive
   }
   BX_E1000_THIS s.statusbar_id = bx_gui->register_statusitem("E1000", 1);
 
@@ -1474,26 +1473,6 @@ void bx_e1000_c::rx_frame(const void *buf, unsigned buf_size)
   set_ics(n);
 
   bx_gui->statusbar_setitem(BX_E1000_THIS s.statusbar_id, 1);
-}
-
-
-// pci configuration space read callback handler
-Bit32u bx_e1000_c::pci_read_handler(Bit8u address, unsigned io_len)
-{
-  Bit32u value = 0;
-
-  for (unsigned i=0; i<io_len; i++) {
-    value |= (BX_E1000_THIS pci_conf[address+i] << (i*8));
-  }
-
-  if (io_len == 1)
-    BX_DEBUG(("read  PCI register 0x%02x value 0x%02x", address, value));
-  else if (io_len == 2)
-    BX_DEBUG(("read  PCI register 0x%02x value 0x%04x", address, value));
-  else if (io_len == 4)
-    BX_DEBUG(("read  PCI register 0x%02x value 0x%08x", address, value));
-
-  return value;
 }
 
 

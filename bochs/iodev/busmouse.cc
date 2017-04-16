@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2004-2016  The Bochs Project
+//  Copyright (C) 2004-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -79,7 +79,7 @@ bx_busm_c *theBusMouse = NULL;
 #define READ_Y_HIGH   (READ_Y | READ_HIGH)
 
 
-int CDECL libbusmouse_LTX_plugin_init(plugin_t *plugin, plugintype_t type, int argc, char *argv[])
+int CDECL libbusmouse_LTX_plugin_init(plugin_t *plugin, plugintype_t type)
 {
   // Create one instance of the busmouse device object.
   theBusMouse = new bx_busm_c();
@@ -114,7 +114,7 @@ void bx_busm_c::init(void)
 
   // Call our timer routine at 30hz
   BX_BUSM_THIS timer_index =
-    bx_pc_system.register_timer(this, timer_handler, 33334, 1, 1, "bus mouse timer");
+    DEV_register_timer(this, timer_handler, 33334, 1, 1, "bus mouse timer");
 
   for (int i=0x23C; i<=0x23F; i++) {
     DEV_register_ioread_handler(this, read_handler, i, "Bus Mouse", 1);

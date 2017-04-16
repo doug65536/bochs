@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2001-2016  The Bochs Project
+//  Copyright (C) 2001-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -440,6 +440,8 @@ const unsigned BX_NUM_VARIABLE_RANGE_MTRRS = 8;
 #define BX_SVM_SMM_CTL_MSR      0xc0010116
 #define BX_SVM_HSAVE_PA_MSR     0xc0010117
 
+#define BX_MSR_XSS              0xda0
+
 enum BxCpuMode {
   BX_MODE_IA32_REAL = 0,        // CR0.PE=0                |
   BX_MODE_IA32_V8086 = 1,       // CR0.PE=1, EFLAGS.VM=1   | EFER.LMA=0
@@ -563,17 +565,17 @@ BOCHSAPI extern BX_CPU_C   bx_cpu;
 // The macro is used once for each flag bit
 // Do not use for arithmetic flags !
 #define DECLARE_EFLAG_ACCESSOR(name,bitnum)                     \
-  BX_SMF BX_CPP_INLINE Bit32u  get_##name ();                   \
-  BX_SMF BX_CPP_INLINE bx_bool getB_##name ();                  \
+  BX_SMF BX_CPP_INLINE unsigned  get_##name ();                 \
+  BX_SMF BX_CPP_INLINE unsigned getB_##name ();                 \
   BX_SMF BX_CPP_INLINE void assert_##name ();                   \
   BX_SMF BX_CPP_INLINE void clear_##name ();                    \
   BX_SMF BX_CPP_INLINE void set_##name (bx_bool val);
 
 #define IMPLEMENT_EFLAG_ACCESSOR(name,bitnum)                   \
-  BX_CPP_INLINE bx_bool BX_CPU_C::getB_##name () {              \
+  BX_CPP_INLINE unsigned BX_CPU_C::getB_##name () {             \
     return 1 & (BX_CPU_THIS_PTR eflags >> bitnum);              \
   }                                                             \
-  BX_CPP_INLINE Bit32u  BX_CPU_C::get_##name () {               \
+  BX_CPP_INLINE unsigned BX_CPU_C::get_##name () {              \
     return BX_CPU_THIS_PTR eflags & (1 << bitnum);              \
   }
 
@@ -748,6 +750,10 @@ typedef struct
 
 #if BX_SUPPORT_SVM
   Bit64u svm_hsave_pa;
+#endif
+
+#if BX_CPU_LEVEL >= 6
+  Bit64u msr_xss;
 #endif
 
   /* TODO finish of the others */
@@ -1348,11 +1354,11 @@ public: // for now...
   }
  
   // ZF
-  BX_SMF BX_CPP_INLINE bx_bool getB_ZF(void) {
+  BX_SMF BX_CPP_INLINE unsigned getB_ZF(void) {
     return (0 == BX_CPU_THIS_PTR oszapc.result);
   }
 
-  BX_SMF BX_CPP_INLINE bx_bool get_ZF(void) { return getB_ZF(); }
+  BX_SMF BX_CPP_INLINE unsigned get_ZF(void) { return getB_ZF(); }
 
   BX_SMF BX_CPP_INLINE void set_ZF(bx_bool val) {
     if (val) assert_ZF();
@@ -1377,12 +1383,12 @@ public: // for now...
   }
 
   // SF
-  BX_SMF BX_CPP_INLINE bx_bool getB_SF(void) {
+  BX_SMF BX_CPP_INLINE unsigned getB_SF(void) {
     return ((BX_CPU_THIS_PTR oszapc.result >> BX_LF_SIGN_BIT) ^
             (BX_CPU_THIS_PTR oszapc.auxbits >> LF_BIT_SD)) & 1;
   }
 
-  BX_SMF BX_CPP_INLINE bx_bool get_SF(void) { return getB_SF(); }
+  BX_SMF BX_CPP_INLINE unsigned get_SF(void) { return getB_SF(); }
 
   BX_SMF BX_CPP_INLINE void set_SF(bx_bool val) {
     bx_bool temp_sf = getB_SF();
@@ -1399,14 +1405,14 @@ public: // for now...
   }
 
   // PF - bit 2 in EFLAGS, represented by lower 8 bits of oszapc.result
-  BX_SMF BX_CPP_INLINE bx_bool getB_PF(void) {
+  BX_SMF BX_CPP_INLINE unsigned getB_PF(void) {
     Bit32u temp = (255 & BX_CPU_THIS_PTR oszapc.result);
     temp = temp ^ (255 & (BX_CPU_THIS_PTR oszapc.auxbits >> LF_BIT_PDB));
     temp = (temp ^ (temp >> 4)) & 0x0F;
     return (0x9669U >> temp) & 1;
   }
 
-  BX_SMF BX_CPP_INLINE bx_bool get_PF(void) { return getB_PF(); }
+  BX_SMF BX_CPP_INLINE unsigned get_PF(void) { return getB_PF(); }
 
   BX_SMF BX_CPP_INLINE void set_PF(bx_bool val) {
     Bit32u temp_pdb = (255 & BX_CPU_THIS_PTR oszapc.result) ^ (!val);
@@ -1424,11 +1430,11 @@ public: // for now...
   }
 
   // AF - bit 4 in EFLAGS, represented by bit LF_BIT_AF of oszapc.auxbits
-  BX_SMF BX_CPP_INLINE bx_bool getB_AF(void) {
+  BX_SMF BX_CPP_INLINE unsigned getB_AF(void) {
     return ((BX_CPU_THIS_PTR oszapc.auxbits >> LF_BIT_AF) & 1);
   }
 
-  BX_SMF BX_CPP_INLINE bx_bool get_AF(void) {
+  BX_SMF BX_CPP_INLINE unsigned get_AF(void) {
     return (BX_CPU_THIS_PTR oszapc.auxbits & LF_MASK_AF);
   }
 
@@ -1446,11 +1452,11 @@ public: // for now...
   }
 
   // CF
-  BX_SMF BX_CPP_INLINE bx_bool getB_CF(void) {
+  BX_SMF BX_CPP_INLINE unsigned getB_CF(void) {
     return ((BX_CPU_THIS_PTR oszapc.auxbits >> LF_BIT_CF) & 1);
   }
 
-  BX_SMF BX_CPP_INLINE bx_bool get_CF(void) {
+  BX_SMF BX_CPP_INLINE unsigned get_CF(void) {
     return (BX_CPU_THIS_PTR oszapc.auxbits & LF_MASK_CF);
   }
 
@@ -1470,11 +1476,11 @@ public: // for now...
   }
 
   // OF
-  BX_SMF BX_CPP_INLINE bx_bool getB_OF(void) {
+  BX_SMF BX_CPP_INLINE unsigned getB_OF(void) {
     return ((BX_CPU_THIS_PTR oszapc.auxbits + (1U << LF_BIT_PO)) >> LF_BIT_CF) & 1;
   }
 
-  BX_SMF BX_CPP_INLINE bx_bool get_OF(void) {
+  BX_SMF BX_CPP_INLINE unsigned get_OF(void) {
     return (BX_CPU_THIS_PTR oszapc.auxbits + (1U << LF_BIT_PO)) & (1U << LF_BIT_CF);
   }
 
@@ -1489,7 +1495,7 @@ public: // for now...
   }
  
   BX_SMF BX_CPP_INLINE void assert_OF(void) {
-    bx_bool temp_cf = getB_CF();
+    unsigned temp_cf = getB_CF();
     SET_FLAGS_OxxxxC((1), temp_cf);
   }
 
@@ -1721,6 +1727,7 @@ public: // for now...
   BX_SMF BX_INSF_TYPE INVD(bxInstruction_c *) BX_CPP_AttrRegparmN(1);
   BX_SMF BX_INSF_TYPE WBINVD(bxInstruction_c *) BX_CPP_AttrRegparmN(1);
   BX_SMF BX_INSF_TYPE CLFLUSH(bxInstruction_c *) BX_CPP_AttrRegparmN(1);
+  BX_SMF BX_INSF_TYPE CLZERO(bxInstruction_c *) BX_CPP_AttrRegparmN(1);
 
   BX_SMF BX_INSF_TYPE MOV_CR0Rd(bxInstruction_c *) BX_CPP_AttrRegparmN(1);
   BX_SMF BX_INSF_TYPE MOV_CR2Rd(bxInstruction_c *) BX_CPP_AttrRegparmN(1);
@@ -3851,6 +3858,9 @@ public: // for now...
   BX_SMF BX_INSF_TYPE VPLZCNTD_MASK_VdqWdqR(bxInstruction_c *) BX_CPP_AttrRegparmN(1);
   BX_SMF BX_INSF_TYPE VPLZCNTQ_MASK_VdqWdqR(bxInstruction_c *) BX_CPP_AttrRegparmN(1);
 
+  BX_SMF BX_INSF_TYPE VPOPCNTD_MASK_VdqWdqR(bxInstruction_c *) BX_CPP_AttrRegparmN(1);
+  BX_SMF BX_INSF_TYPE VPOPCNTQ_MASK_VdqWdqR(bxInstruction_c *) BX_CPP_AttrRegparmN(1);
+
   BX_SMF BX_INSF_TYPE VPBROADCASTMB2Q_VdqKEbR(bxInstruction_c *) BX_CPP_AttrRegparmN(1);
   BX_SMF BX_INSF_TYPE VPBROADCASTMW2D_VdqKEwR(bxInstruction_c *) BX_CPP_AttrRegparmN(1);
 
@@ -4472,6 +4482,10 @@ public: // for now...
 #endif
 #endif
 
+  BX_SMF void tickle_read_linear(unsigned seg, bx_address offset) BX_CPP_AttrRegparmN(2);
+  BX_SMF void tickle_read_virtual_32(unsigned seg, Bit32u offset) BX_CPP_AttrRegparmN(2);
+  BX_SMF void tickle_read_virtual(unsigned seg, bx_address offset) BX_CPP_AttrRegparmN(2);
+
   BX_SMF Bit8u read_virtual_byte_32(unsigned seg, Bit32u offset) BX_CPP_AttrRegparmN(2);
   BX_SMF Bit16u read_virtual_word_32(unsigned seg, Bit32u offset) BX_CPP_AttrRegparmN(2);
   BX_SMF Bit32u read_virtual_dword_32(unsigned seg, Bit32u offset) BX_CPP_AttrRegparmN(2);
@@ -4936,6 +4950,7 @@ public: // for now...
 
   BX_SMF bx_address agen_read(unsigned seg, bx_address offset, unsigned len);
   BX_SMF Bit32u agen_read32(unsigned seg, Bit32u offset, unsigned len);
+  BX_SMF Bit32u agen_read_execute32(unsigned seg, Bit32u offset, unsigned len);
   BX_SMF bx_address agen_read_aligned(unsigned seg, bx_address offset, unsigned len);
   BX_SMF Bit32u agen_read_aligned32(unsigned seg, Bit32u offset, unsigned len);
 
@@ -5070,6 +5085,7 @@ public: // for now...
 #if BX_SUPPORT_MONITOR_MWAIT
   BX_SMF bx_bool    is_monitor(bx_phy_address addr, unsigned len);
   BX_SMF void    check_monitor(bx_phy_address addr, unsigned len);
+  BX_SMF void   wakeup_monitor(void);
 #endif
 
 #if BX_SUPPORT_VMX
@@ -5357,6 +5373,27 @@ BX_CPP_INLINE bx_address BX_CPU_C::get_laddr(unsigned seg, bx_address offset)
   return get_laddr32(seg, (Bit32u) offset);
 }
 
+// same as agen_read32 but also allow access to execute only segments
+BX_CPP_INLINE Bit32u BX_CPU_C::agen_read_execute32(unsigned s, Bit32u offset, unsigned len)
+{
+  bx_segment_reg_t *seg = &BX_CPU_THIS_PTR sregs[s];
+
+  if (seg->cache.valid & SegAccessROK4G) {
+    return offset;
+  }
+
+  if (seg->cache.valid & SegAccessROK) {
+    if (offset <= (seg->cache.u.segment.limit_scaled-len+1)) {
+      return get_laddr32(s, offset);
+    }
+  }
+
+  if (!execute_virtual_checks(seg, offset, len))
+    exception(int_number(s), 0);
+
+  return get_laddr32(s, offset);
+}
+
 BX_CPP_INLINE Bit32u BX_CPU_C::agen_read32(unsigned s, Bit32u offset, unsigned len)
 {
   bx_segment_reg_t *seg = &BX_CPU_THIS_PTR sregs[s];
@@ -5444,7 +5481,7 @@ BX_CPP_INLINE bx_address BX_CPU_C::agen_read(unsigned s, bx_address offset, unsi
     return get_laddr64(s, offset);
   }
 #endif
-  return agen_read32(s, offset, len);
+  return agen_read32(s, (Bit32u)offset, len);
 }
 
 BX_CPP_INLINE bx_address BX_CPU_C::agen_read_aligned(unsigned s, bx_address offset, unsigned len)
@@ -5454,7 +5491,7 @@ BX_CPP_INLINE bx_address BX_CPU_C::agen_read_aligned(unsigned s, bx_address offs
     return get_laddr64(s, offset);
   }
 #endif
-  return agen_read_aligned32(s, offset, len);
+  return agen_read_aligned32(s, (Bit32u)offset, len);
 }
 
 BX_CPP_INLINE bx_address BX_CPU_C::agen_write(unsigned s, bx_address offset, unsigned len)
@@ -5464,7 +5501,7 @@ BX_CPP_INLINE bx_address BX_CPU_C::agen_write(unsigned s, bx_address offset, uns
     return get_laddr64(s, offset);
   }
 #endif
-  return agen_write32(s, offset, len);
+  return agen_write32(s, (Bit32u)offset, len);
 }
 
 BX_CPP_INLINE bx_address BX_CPU_C::agen_write_aligned(unsigned s, bx_address offset, unsigned len)
@@ -5474,7 +5511,7 @@ BX_CPP_INLINE bx_address BX_CPU_C::agen_write_aligned(unsigned s, bx_address off
     return get_laddr64(s, offset);
   }
 #endif
-  return agen_write_aligned32(s, offset, len);
+  return agen_write_aligned32(s, (Bit32u)offset, len);
 }
 
 #include "access.h"

@@ -85,7 +85,7 @@ static Bit32u serial_number = 1234;
 static const Bit8u bx_hub_dev_descriptor[] = {
   0x12,       /*  u8 bLength; */
   0x01,       /*  u8 bDescriptorType; Device */
-  0x00, 0x02, /*  u16 bcdUSB; v2.0 */
+  0x10, 0x01, /*  u16 bcdUSB; v1.1 */
 
   0x09,       /*  u8  bDeviceClass; HUB_CLASSCODE */
   0x00,       /*  u8  bDeviceSubClass; */
@@ -96,14 +96,14 @@ static const Bit8u bx_hub_dev_descriptor[] = {
   0x5A, 0x00, /*  u16 idProduct; */
   0x00, 0x01, /*  u16 bcdDevice */
 
-  0x00,       /*  u8  iManufacturer; */
-  0x00,       /*  u8  iProduct; */
-  0x00,       /*  u8  iSerialNumber; */
+  0x01,       /*  u8  iManufacturer; */
+  0x02,       /*  u8  iProduct; */
+  0x03,       /*  u8  iSerialNumber; */
   0x01        /*  u8  bNumConfigurations; */
 };
 
 /* XXX: patch interrupt size */
-static const Bit8u bx_hub_config_descriptor[] = {
+static Bit8u bx_hub_config_descriptor[] = {
 
   /* one configuration */
   0x09,       /*  u8  bLength; */
@@ -155,10 +155,10 @@ static const Bit8u bx_hub_hub_descriptor[] =
   0x00,       /*  u8  bLength; patched in later */
   0x29,       /*  u8  bDescriptorType; Hub-descriptor */
   0x00,       /*  u8  bNbrPorts; (patched later) */
-  0xa9,       /* u16  wHubCharacteristics; */
+  0x0a,       /* u16  wHubCharacteristics; */
   0x00,       /*   (per-port OC, no power switching) */
-  0x32,       /*  u8  bPwrOn2pwrGood; 2ms */
-  0x64        /*  u8  bHubContrCurrent; 0 mA */
+  0x01,       /*  u8  bPwrOn2pwrGood; 2ms */
+  0x00        /*  u8  bHubContrCurrent; 0 mA */
 
   /* DeviceRemovable and PortPwrCtrlMask patched in later */
 };
@@ -177,13 +177,20 @@ usb_hub_device_c::usb_hub_device_c(Bit8u ports)
   bx_param_string_c *device;
 
   d.type = USB_DEV_TYPE_HUB;
-  d.maxspeed = USB_SPEED_FULL;
-  d.speed = d.maxspeed;
+  d.speed = d.minspeed = d.maxspeed = USB_SPEED_FULL;
   strcpy(d.devname, "Bochs USB HUB");
+  d.dev_descriptor = bx_hub_dev_descriptor;
+  d.config_descriptor = bx_hub_config_descriptor;
+  d.device_desc_size = sizeof(bx_hub_dev_descriptor);
+  d.config_desc_size = sizeof(bx_hub_config_descriptor);
+  d.vendor_desc = "BOCHS";
+  d.product_desc = "BOCHS USB HUB";
   d.connected = 1;
   memset((void*)&hub, 0, sizeof(hub));
   hub.n_ports = ports;
+  bx_hub_config_descriptor[22] = (hub.n_ports + 1 + 7) / 8;
   sprintf(hub.serial_number, "%d", serial_number++);
+  d.serial_num = hub.serial_number;
   for(i = 0; i < hub.n_ports; i++) {
     hub.usb_port[i].PortStatus = PORT_STAT_POWER;
     hub.usb_port[i].PortChange = 0;
@@ -219,6 +226,7 @@ usb_hub_device_c::~usb_hub_device_c(void)
   for (int i=0; i<hub.n_ports; i++) {
     remove_device(i);
   }
+  d.sr->clear();
   if (SIM->is_wx_selected()) {
     bx_list_c *usb = (bx_list_c*)SIM->get_param("ports.usb");
     usb->remove(hub.config->get_name());
@@ -260,8 +268,20 @@ void usb_hub_device_c::after_restore_state()
 
 void usb_hub_device_c::handle_reset()
 {
-  // TODO
+  int i;
+
   BX_DEBUG(("Reset"));
+  for (i = 0; i < hub.n_ports; i++) {
+    hub.usb_port[i].PortStatus = PORT_STAT_POWER;
+    hub.usb_port[i].PortChange = 0;
+    if (hub.usb_port[i].device != NULL) {
+      hub.usb_port[i].PortStatus |= PORT_STAT_CONNECTION;
+      hub.usb_port[i].PortChange |= PORT_STAT_C_CONNECTION;
+      if (hub.usb_port[i].device->get_speed() == USB_SPEED_LOW) {
+        hub.usb_port[i].PortStatus |= PORT_STAT_LOW_SPEED;
+      }
+    }
+  }
 }
 
 int usb_hub_device_c::handle_control(int request, int value, int index, int length, Bit8u *data)
@@ -269,24 +289,15 @@ int usb_hub_device_c::handle_control(int request, int value, int index, int leng
   int ret = 0;
   unsigned int n;
 
+  ret = handle_control_common(request, value, index, length, data);
+  if (ret >= 0) {
+    return ret;
+  }
+
+  ret = 0;
   switch(request) {
-    case DeviceRequest | USB_REQ_GET_STATUS:
-      if (d.state == USB_STATE_DEFAULT)
-        goto fail;
-      else {
-        data[0] = (1 << USB_DEVICE_SELF_POWERED) |
-                  (d.remote_wakeup << USB_DEVICE_REMOTE_WAKEUP);
-        data[1] = 0x00;
-        ret = 2;
-      }
-      break;
     case DeviceOutRequest | USB_REQ_CLEAR_FEATURE:
-      if (value == USB_DEVICE_REMOTE_WAKEUP) {
-        d.remote_wakeup = 0;
-      } else {
-        goto fail;
-      }
-      ret = 0;
+      goto fail;
       break;
     case EndpointOutRequest | USB_REQ_CLEAR_FEATURE:
       if (value == 0 && index != 0x81) { /* clear ep halt */
@@ -295,83 +306,20 @@ int usb_hub_device_c::handle_control(int request, int value, int index, int leng
       ret = 0;
       break;
     case DeviceOutRequest | USB_REQ_SET_FEATURE:
-      if (value == USB_DEVICE_REMOTE_WAKEUP) {
-        d.remote_wakeup = 1;
-      } else {
-        goto fail;
-      }
-      ret = 0;
-      break;
-    case DeviceOutRequest | USB_REQ_SET_ADDRESS:
-      d.state = USB_STATE_ADDRESS;
-      d.addr = value;
-      ret = 0;
+      goto fail;
       break;
     case DeviceRequest | USB_REQ_GET_DESCRIPTOR:
       switch(value >> 8) {
-        case USB_DT_DEVICE:
-          memcpy(data, bx_hub_dev_descriptor,
-                 sizeof(bx_hub_dev_descriptor));
-          ret = sizeof(bx_hub_dev_descriptor);
-          break;
-        case USB_DT_CONFIG:
-          memcpy(data, bx_hub_config_descriptor,
-                 sizeof(bx_hub_config_descriptor));
-
-          /* status change endpoint size based on number
-           * of ports */
-          data[22] = (hub.n_ports + 1 + 7) / 8;
-
-          ret = sizeof(bx_hub_config_descriptor);
-          break;
         case USB_DT_STRING:
-          switch(value & 0xff) {
-            case 0:
-              /* language ids */
-              data[0] = 4;
-              data[1] = 3;
-              data[2] = 0x09;
-              data[3] = 0x04;
-              ret = 4;
-              break;
-            case 1:
-              /* serial number */
-              ret = set_usb_string(data, hub.serial_number);
-              break;
-            case 2:
-              /* product description */
-              ret = set_usb_string(data, "Bochs USB HUB");
-              break;
-            case 3:
-              /* vendor description */
-              ret = set_usb_string(data, "Bochs");
-              break;
-            default:
-              BX_ERROR(("unknown string descriptor type %i", value & 0xff));
-              goto fail;
-          }
+          BX_ERROR(("unknown string descriptor type %i", value & 0xff));
+          goto fail;
           break;
         default:
           BX_ERROR(("unknown descriptor type: 0x%02x", (value >> 8)));
           goto fail;
       }
       break;
-    case DeviceRequest | USB_REQ_GET_CONFIGURATION:
-      data[0] = 1;
-      ret = 1;
-      break;
-    case DeviceOutRequest | USB_REQ_SET_CONFIGURATION:
-      d.state = USB_STATE_CONFIGURED;
-      ret = 0;
-      break;
-    case DeviceRequest | USB_REQ_GET_INTERFACE:
-      data[0] = 0;
-      ret = 1;
-      break;
-    case DeviceOutRequest | USB_REQ_SET_INTERFACE:
-      ret = 0;
-      break;
-      /* usb specific requests */
+      /* hub specific requests */
     case GetHubStatus:
       if (d.state == USB_STATE_CONFIGURED) {
         data[0] = 0;
@@ -588,14 +536,28 @@ void usb_hub_device_c::init_device(Bit8u port, bx_list_c *portconf)
 
 void usb_hub_device_c::remove_device(Bit8u port)
 {
-  char pname[BX_PATHNAME_LEN];
-
   if (hub.usb_port[port].device != NULL) {
-    sprintf(pname, "port%d.device", port+1);
-    bx_list_c *devlist = (bx_list_c*)SIM->get_param(pname, hub.state);
-    devlist->clear();
     delete hub.usb_port[port].device;
     hub.usb_port[port].device = NULL;
+  }
+}
+
+void hub_event_handler(int event, USBPacket *packet, void *dev, int port)
+{
+  ((usb_hub_device_c*)dev)->event_handler(event, packet, port);
+}
+
+void usb_hub_device_c::event_handler(int event, USBPacket *packet, int port)
+{
+  if (event == USB_EVENT_WAKEUP) {
+    if (hub.usb_port[port].PortStatus & PORT_STAT_SUSPEND) {
+      hub.usb_port[port].PortChange |= PORT_STAT_C_SUSPEND;
+    }
+    if (d.event.dev != NULL) {
+      d.event.cb(USB_EVENT_WAKEUP, NULL, d.event.dev, d.event.port);
+    }
+  } else {
+    BX_ERROR(("unknown/unsupported event (id=%d) on port #%d", event, port+1));
   }
 }
 
@@ -605,21 +567,45 @@ void usb_hub_device_c::usb_set_connect_status(Bit8u port, int type, bx_bool conn
   if (device != NULL) {
     if (device->get_type() == type) {
       if (connected) {
+        switch (device->get_speed()) {
+          case USB_SPEED_LOW:
+            hub.usb_port[port].PortStatus |= PORT_STAT_LOW_SPEED;
+            break;
+          case USB_SPEED_FULL:
+            hub.usb_port[port].PortStatus &= ~PORT_STAT_LOW_SPEED;
+            break;
+          case USB_SPEED_HIGH:
+          case USB_SPEED_SUPER:
+            BX_PANIC(("Hub supports 'low' or 'full' speed devices only."));
+            usb_set_connect_status(port, type, 0);
+            return;
+          default:
+            BX_PANIC(("USB device returned invalid speed value"));
+            usb_set_connect_status(port, type, 0);
+            return;
+        }
         hub.usb_port[port].PortStatus |= PORT_STAT_CONNECTION;
         hub.usb_port[port].PortChange |= PORT_STAT_C_CONNECTION;
-        if (device->get_speed() == USB_SPEED_LOW)
-          hub.usb_port[port].PortStatus |= PORT_STAT_LOW_SPEED;
-        else
-          hub.usb_port[port].PortStatus &= ~PORT_STAT_LOW_SPEED;
+        if (hub.usb_port[port].PortStatus & PORT_STAT_SUSPEND) {
+          hub.usb_port[port].PortChange |= PORT_STAT_C_SUSPEND;
+        }
+        if (d.event.dev != NULL) {
+          d.event.cb(USB_EVENT_WAKEUP, NULL, d.event.dev, d.event.port);
+        }
         if (!device->get_connected()) {
           if (!device->init()) {
             usb_set_connect_status(port, type, 0);
             BX_ERROR(("port #%d: connect failed", port+1));
+            return;
           } else {
             BX_INFO(("port #%d: connect: %s", port+1, device->get_info()));
           }
         }
+        device->set_event_handler(this, hub_event_handler, port);
       } else {
+        if (d.event.dev != NULL) {
+          d.event.cb(USB_EVENT_WAKEUP, NULL, d.event.dev, d.event.port);
+        }
         hub.usb_port[port].PortStatus &= ~PORT_STAT_CONNECTION;
         hub.usb_port[port].PortChange |= PORT_STAT_C_CONNECTION;
         if (hub.usb_port[port].PortStatus & PORT_STAT_ENABLE) {

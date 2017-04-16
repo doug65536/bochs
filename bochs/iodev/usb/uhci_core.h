@@ -2,8 +2,8 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2009       Benjamin D Lunt (fys at frontiernet net)
-//                2009-2015  The Bochs Project
+//  Copyright (C) 2009-2016  Benjamin D Lunt (fys [at] fysnet [dot] net)
+//                2009-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -148,7 +148,7 @@ typedef struct {
     bx_bool status;
   } usb_port[USB_UHCI_PORTS];
 
-  Bit8u devfunc;
+  Bit8u   devfunc;
 } bx_uhci_core_t;
 
 #pragma pack (push, 1)
@@ -170,7 +170,7 @@ struct HCSTACK {
   bx_bool t;
 };
 
-class bx_uhci_core_c : public bx_devmodel_c, public bx_pci_device_stub_c {
+class bx_uhci_core_c : public bx_pci_device_c {
 public:
   bx_uhci_core_c();
   virtual ~bx_uhci_core_c();
@@ -179,16 +179,16 @@ public:
   virtual void register_state(bx_list_c *parent);
   virtual void after_restore_state(void);
   virtual void set_port_device(int port, usb_device_c *dev);
-  virtual Bit32u  pci_read_handler(Bit8u address, unsigned io_len);
-  virtual void    pci_write_handler(Bit8u address, Bit32u value, unsigned io_len);
+  virtual void pci_write_handler(Bit8u address, Bit32u value, unsigned io_len);
+
+  void event_handler(int event, USBPacket *packet, int port);
 
 protected:
   bx_uhci_core_t hub;
   Bit8u          global_reset;
   bx_bool        busy;
-  Bit8u          *device_buffer;
 
-  USBPacket usb_packet;
+  USBAsync *packets;
 
   void update_irq(void);
 

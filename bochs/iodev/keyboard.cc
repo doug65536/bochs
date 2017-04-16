@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2002-2015  The Bochs Project
+//  Copyright (C) 2002-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -56,7 +56,7 @@
 
 bx_keyb_c *theKeyboard = NULL;
 
-int CDECL libkeyboard_LTX_plugin_init(plugin_t *plugin, plugintype_t type, int argc, char *argv[])
+int CDECL libkeyboard_LTX_plugin_init(plugin_t *plugin, plugintype_t type)
 {
   // Create one instance of the keyboard device object.
   theKeyboard = new bx_keyb_c();
@@ -129,7 +129,7 @@ void bx_keyb_c::init(void)
                                       0x0060, "8042 Keyboard controller", 1);
   DEV_register_iowrite_handler(this, write_handler,
                                       0x0064, "8042 Keyboard controller", 1);
-  BX_KEY_THIS timer_handle = bx_pc_system.register_timer(this, timer_handler,
+  BX_KEY_THIS timer_handle = DEV_register_timer(this, timer_handler,
                                  SIM->get_param_num(BXPN_KBD_SERIAL_DELAY)->get(), 1, 1,
                                  "8042 Keyboard controller");
 
@@ -810,11 +810,6 @@ void bx_keyb_c::gen_scancode(Bit32u key)
     scancode=(unsigned char *)scancodes[(key&0xFF)][BX_KEY_THIS s.kbd_controller.current_scancodes_set].brek;
   else
     scancode=(unsigned char *)scancodes[(key&0xFF)][BX_KEY_THIS s.kbd_controller.current_scancodes_set].make;
-
-  // if we have a removable keyboard installed, we need to call its handler first
-  if (DEV_optional_key_enq(scancode)) {
-    return;
-  }
 
   if (BX_KEY_THIS s.kbd_controller.scancodes_translate) {
     // Translate before send

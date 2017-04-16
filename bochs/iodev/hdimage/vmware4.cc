@@ -10,7 +10,7 @@
  * Contact: snrrrub@gmail.com
  *
  * Copyright (C) 2006       Sharvil Nanavati.
- * Copyright (C) 2006-2015  The Bochs Project
+ * Copyright (C) 2006-2017  The Bochs Project
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -56,7 +56,7 @@ vmware4_image_t::vmware4_image_t()
   is_dirty(0)
 {
   if (sizeof(_VM4_Header) != 77) {
-    BX_PANIC(("system error: invalid header structure size"));
+    BX_FATAL(("system error: invalid header structure size"));
   }
 }
 
@@ -112,7 +112,7 @@ void vmware4_image_t::close()
   flush();
   delete [] tlb; tlb = 0;
 
-  ::close(file_descriptor);
+  bx_close_image(file_descriptor, pathname);
   file_descriptor = -1;
 }
 

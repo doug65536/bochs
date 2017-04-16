@@ -52,6 +52,7 @@ enum {
   BX_ISA_SSE4_2,                  /* SSE4_2 instruction */
   BX_ISA_POPCNT,                  /* POPCNT instruction */
   BX_ISA_MONITOR_MWAIT,           /* MONITOR/MWAIT instruction */
+  BX_ISA_MONITORX_MWAITX,         /* MONITORX/MWAITX instruction (AMD) */
   BX_ISA_VMX,                     /* VMX instruction */
   BX_ISA_SMX,                     /* SMX instruction */
   BX_ISA_LONG_MODE,               /* Long Mode (x86-64) support */
@@ -97,6 +98,7 @@ enum {
   BX_ISA_AVX512_VL,               /* AVX-512 Vector Length extensions */
   BX_ISA_AVX512_VBMI,             /* AVX-512 Vector Bit Manipulation Instructions */
   BX_ISA_AVX512_IFMA52,           /* AVX-512 IFMA52 Instructions */
+  BX_ISA_AVX512_VPOPCNTDQ,        /* AVX-512 VPOPCNTD/VPOPCNTQ Instructions */
   BX_ISA_XAPIC,                   /* XAPIC support */
   BX_ISA_X2APIC,                  /* X2APIC support */
   BX_ISA_XAPIC_EXT,               /* XAPIC Extensions support */
@@ -108,6 +110,8 @@ enum {
   BX_ISA_PKU,                     /* User-Mode Protection Keys */
   BX_ISA_UMIP,                    /* User-Mode Instructions Prevention */
   BX_ISA_RDPID,                   /* RDPID Support */
+  BX_ISA_TCE,                     /* Translation Cache Extensions (TCE) support (AMD) */
+  BX_ISA_CLZERO,                  /* CLZERO instruction support (AMD) */
   BX_ISA_EXTENSION_LAST
 };                            
 

@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2009-2015  The Bochs Project
+//  Copyright (C) 2009-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -80,25 +80,14 @@
 #define BXPN_CPUID_SMAP                  "cpuid.smap"
 #define BXPN_MEM_SIZE                    "memory.standard.ram.size"
 #define BXPN_HOST_MEM_SIZE               "memory.standard.ram.host_size"
-#define BXPN_ROM_PATH                    "memory.standard.rom.path"
-#define BXPN_ROM_ADDRESS                 "memory.standard.rom.addr"
-#define BXPN_VGA_ROM_PATH                "memory.standard.vgarom.path"
-#define BXPN_OPTROM1_PATH                "memory.optrom.1.path"
-#define BXPN_OPTROM1_ADDRESS             "memory.optrom.1.addr"
-#define BXPN_OPTROM2_PATH                "memory.optrom.2.path"
-#define BXPN_OPTROM2_ADDRESS             "memory.optrom.2.addr"
-#define BXPN_OPTROM3_PATH                "memory.optrom.3.path"
-#define BXPN_OPTROM3_ADDRESS             "memory.optrom.3.addr"
-#define BXPN_OPTROM4_PATH                "memory.optrom.4.path"
-#define BXPN_OPTROM4_ADDRESS             "memory.optrom.4.addr"
-#define BXPN_OPTRAM1_PATH                "memory.optram.1.path"
-#define BXPN_OPTRAM1_ADDRESS             "memory.optram.1.addr"
-#define BXPN_OPTRAM2_PATH                "memory.optram.2.path"
-#define BXPN_OPTRAM2_ADDRESS             "memory.optram.2.addr"
-#define BXPN_OPTRAM3_PATH                "memory.optram.3.path"
-#define BXPN_OPTRAM3_ADDRESS             "memory.optram.3.addr"
-#define BXPN_OPTRAM4_PATH                "memory.optram.4.path"
-#define BXPN_OPTRAM4_ADDRESS             "memory.optram.4.addr"
+#define BXPN_ROMIMAGE                    "memory.standard.rom"
+#define BXPN_ROM_PATH                    "memory.standard.rom.file"
+#define BXPN_ROM_ADDRESS                 "memory.standard.rom.address"
+#define BXPN_ROM_OPTIONS                 "memory.standard.rom.options"
+#define BXPN_VGA_ROMIMAGE                "memory.standard.vgarom"
+#define BXPN_VGA_ROM_PATH                "memory.standard.vgarom.file"
+#define BXPN_OPTROM_BASE                 "memory.optrom"
+#define BXPN_OPTRAM_BASE                 "memory.optram"
 #define BXPN_CLOCK_SYNC                  "clock_cmos.clock_sync"
 #define BXPN_CLOCK_TIME0                 "clock_cmos.time0"
 #define BXPN_CLOCK_RTC_SYNC              "clock_cmos.rtc_sync"

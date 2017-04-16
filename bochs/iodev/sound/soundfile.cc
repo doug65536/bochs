@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2001-2015  The Bochs Project
+//  Copyright (C) 2001-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -28,6 +28,7 @@
 
 #include "iodev.h"
 #include "soundlow.h"
+#include "soundmod.h"
 #include "soundfile.h"
 
 #if BX_SUPPORT_SOUNDLOW
@@ -39,7 +40,20 @@
 
 #define LOG_THIS
 
-// bx_soundlow_waveout_file_c class implemenzation
+// sound driver plugin entry points
+
+int CDECL libfile_sound_plugin_init(plugin_t *plugin, plugintype_t type)
+{
+  // Nothing here yet
+  return 0; // Success
+}
+
+void CDECL libfile_sound_plugin_fini(void)
+{
+  // Nothing here yet
+}
+
+// bx_soundlow_waveout_file_c class implementation
 
 bx_soundlow_waveout_file_c::bx_soundlow_waveout_file_c()
     :bx_soundlow_waveout_c()
@@ -97,8 +111,8 @@ int bx_soundlow_waveout_file_c::openwaveoutput(const char *wavedev)
       initwavfile();
     }
     set_pcm_params(&real_pcm_param);
-    if (conversion_control != 1) {
-      start_conversion_thread();
+    if (resampler_control != 1) {
+      start_resampler_thread();
     }
     if (mixer_control != 1) {
       pcm_callback_id = register_wave_callback(this, pcm_callback);
@@ -221,7 +235,7 @@ void bx_soundlow_waveout_file_c::VOC_write_block(int block, Bit32u headerlen,
     fwrite(data, 1, datalen, wavefile);
 }
 
-// bx_soundlow_midiout_file_c class implemenzation
+// bx_soundlow_midiout_file_c class implementation
 
 bx_soundlow_midiout_file_c::bx_soundlow_midiout_file_c()
     :bx_soundlow_midiout_c()
@@ -359,13 +373,7 @@ void bx_soundlow_midiout_file_c::writedeltatime(Bit32u deltatime)
     fputc(value[i], midifile);
 }
 
-// bx_sound_oss_c class implemenzation
-
-bx_sound_file_c::bx_sound_file_c()
-    :bx_sound_lowlevel_c()
-{
-  BX_INFO(("Sound lowlevel module 'file' initialized"));
-}
+// bx_sound_oss_c class implementation
 
 bx_soundlow_waveout_c* bx_sound_file_c::get_waveout()
 {

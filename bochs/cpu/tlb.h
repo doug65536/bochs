@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//   Copyright (c) 2015 Stanislav Shwartsman
+//   Copyright (c) 2015-2017 Stanislav Shwartsman
 //          Written by Stanislav Shwartsman [sshwarts at sourceforge net]
 //
 //  This library is free software; you can redistribute it and/or
@@ -100,7 +100,7 @@ typedef struct {
   bx_phy_address ppf;   // physical page frame
   bx_hostpageaddr_t hostPageAddr;
   Bit32u accessBits;
-#if BX_SUPPORT_X86_64
+#if BX_SUPPORT_PKEYS
   Bit32u pkey;
 #endif
   Bit32u lpf_mask;      // linear address mask of the page size

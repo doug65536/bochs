@@ -4,7 +4,7 @@
 //
 //  Experimental USB EHCI adapter (partly ported from Qemu)
 //
-//  Copyright (C) 2015  The Bochs Project
+//  Copyright (C) 2015-2017  The Bochs Project
 //
 //  Copyright(c) 2008  Emutex Ltd. (address@hidden)
 //  Copyright(c) 2011-2012 Red Hat, Inc.
@@ -299,7 +299,6 @@ struct EHCIPacket {
     Bit32u qtdaddr;      /* address QTD read from                 */
 
     USBPacket packet;
-//    QEMUSGList sgl;
     int pid;
     Bit32u tbytes;
     enum async_state async;
@@ -323,7 +322,7 @@ struct EHCIQueue {
     QTAILQ_HEAD(, EHCIPacket) packets;
 };
 
-class bx_usb_ehci_c : public bx_devmodel_c, public bx_pci_device_stub_c {
+class bx_usb_ehci_c : public bx_pci_device_c {
 public:
   bx_usb_ehci_c();
   virtual ~bx_usb_ehci_c();
@@ -331,8 +330,9 @@ public:
   virtual void reset(unsigned);
   virtual void register_state(void);
   virtual void after_restore_state(void);
-  virtual Bit32u  pci_read_handler(Bit8u address, unsigned io_len);
-  virtual void    pci_write_handler(Bit8u address, Bit32u value, unsigned io_len);
+  virtual void pci_write_handler(Bit8u address, Bit32u value, unsigned io_len);
+
+  void event_handler(int event, USBPacket *packet, int port);
 
   static const char *usb_param_handler(bx_param_string_c *param, int set,
                                        const char *oldval, const char *val, int maxlen);
@@ -343,7 +343,6 @@ private:
   Bit8u         devfunc;
   Bit8u         device_change;
   int           rt_conf_id;
-  Bit8u         *device_buffer;
   Bit32u        maxframes;
 
   void reset_hc(void);
@@ -354,7 +353,7 @@ private:
   static void set_connect_status(Bit8u port, int type, bx_bool connected);
   static void change_port_owner(int port);
 
-  // methods ported from QEMU EHCI
+  // EHCI core methods ported from QEMU 1.2.2
   void update_irq(void);
   void raise_irq(Bit8u intr);
   void commit_irq(void);
@@ -363,7 +362,10 @@ private:
   void set_state(int async, int state);
   int get_state(int async);
   void set_fetch_addr(int async, Bit32u addr);
-  int get_fetch_addr(int async);
+  Bit32u get_fetch_addr(int async);
+
+  bx_bool async_enabled(void);
+  bx_bool periodic_enabled(void);
 
   EHCIPacket *alloc_packet(EHCIQueue *q);
   void free_packet(EHCIPacket *p);
@@ -380,11 +382,10 @@ private:
   usb_device_c *find_device(Bit8u addr);
   void flush_qh(EHCIQueue *q);
   int qh_do_overlay(EHCIQueue *q);
-  int init_transfer(EHCIPacket *p);
+  int transfer(EHCIPacket *p);
   void finish_transfer(EHCIQueue *q, int status);
-  void async_complete_packet(USBPacket *packet);
   void execute_complete(EHCIQueue *q);
-  int execute(EHCIPacket *p, const char *action);
+  int execute(EHCIPacket *p);
   int process_itd(EHCIitd *itd, Bit32u addr);
 
   int state_waitlisthead(int async);
@@ -404,7 +405,6 @@ private:
   void advance_async_state(void);
   void advance_periodic_state(void);
   void update_frindex(int frames);
-  void async_bh(void);
 
   // EHCI frame timer
   static void ehci_frame_handler(void *);

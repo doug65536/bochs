@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//   Copyright (c) 2009-2015 Stanislav Shwartsman
+//   Copyright (c) 2009-2017 Stanislav Shwartsman
 //          Written by Stanislav Shwartsman [sshwarts at sourceforge net]
 //
 //  This library is free software; you can redistribute it and/or
@@ -745,6 +745,11 @@ VMX_error_code BX_CPU_C::VMenterLoadCheckVmControls(void)
     }
     vm->pml_index = VMread16(VMCS_16BIT_GUEST_PML_INDEX);
   }
+
+  if (vm->vmexec_ctrls3 & VMX_VM_EXEC_CTRL3_XSAVES_XRSTORS)
+     vm->xss_exiting_bitmap = VMread64(VMCS_64BIT_CONTROL_XSS_EXITING_BITMAP);
+  else
+     vm->xss_exiting_bitmap = 0;
 #endif
 
 #endif // BX_SUPPORT_X86_64
@@ -755,7 +760,6 @@ VMX_error_code BX_CPU_C::VMenterLoadCheckVmControls(void)
        return VMXERR_VMENTRY_INVALID_VM_CONTROL_FIELD;
      }
   }
-
 
   //
   // Load VM-exit control fields to VMCS Cache
@@ -3751,6 +3755,7 @@ void BX_CPU_C::register_vmx_state(bx_param_c *parent)
 #if BX_SUPPORT_VMX >= 2
   BXRS_HEX_PARAM_FIELD(vmexec_ctrls, ve_info_addr, BX_CPU_THIS_PTR vmcs.ve_info_addr);
   BXRS_HEX_PARAM_FIELD(vmexec_ctrls, eptp_index, BX_CPU_THIS_PTR vmcs.eptp_index);
+  BXRS_HEX_PARAM_FIELD(vmexec_ctrls, xss_exiting_bitmap, BX_CPU_THIS_PTR vmcs.xss_exiting_bitmap);
 #endif
 
   //

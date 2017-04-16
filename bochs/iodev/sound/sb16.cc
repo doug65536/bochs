@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2001-2015  The Bochs Project
+//  Copyright (C) 2001-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -32,6 +32,7 @@
 #if BX_SUPPORT_SB16
 
 #include "soundlow.h"
+#include "soundmod.h"
 #include "sb16.h"
 #include "opl.h"
 
@@ -162,7 +163,7 @@ Bit32s sb16_options_save(FILE *fp)
 
 // device plugin entry points
 
-int CDECL libsb16_LTX_plugin_init(plugin_t *plugin, plugintype_t type, int argc, char *argv[])
+int CDECL libsb16_LTX_plugin_init(plugin_t *plugin, plugintype_t type)
 {
   theSB16Device = new bx_sb16_c();
   BX_REGISTER_DEVICE_DEVMODEL(plugin, type, theSB16Device, BX_PLUGIN_SB16);
@@ -395,19 +396,19 @@ void bx_sb16_c::init(void)
 
   // initialize the timers
   if (MPU.timer_handle == BX_NULL_TIMER_HANDLE) {
-    MPU.timer_handle = bx_pc_system.register_timer
+    MPU.timer_handle = DEV_register_timer
       (BX_SB16_THISP, mpu_timer, 500000 / 384, 1, 1, "sb16.mpu");
     // midi timer: active, continuous, 500000 / 384 seconds (384 = delta time, 500000 = sec per beat at 120 bpm. Don't change this!)
   }
 
   if (DSP.timer_handle == BX_NULL_TIMER_HANDLE) {
-    DSP.timer_handle = bx_pc_system.register_timer
+    DSP.timer_handle = DEV_register_timer
       (BX_SB16_THISP, dsp_dmatimer, 1, 1, 0, "sb16.dsp");
     // dma timer: inactive, continuous, frequency variable
   }
 
   if (OPL.timer_handle == BX_NULL_TIMER_HANDLE) {
-    OPL.timer_handle = bx_pc_system.register_timer
+    OPL.timer_handle = DEV_register_timer
       (BX_SB16_THISP, opl_timer, 80, 1, 0, "sb16.opl");
     // opl timer: inactive, continuous, frequency 80us
   }
@@ -2927,7 +2928,7 @@ bx_bool bx_sb16_buffer::puts(const char *data, ...)
   char *string;
   int index = 0;
 
-  string = (char *) malloc(length);
+  string = new char[length];
 
   va_list ap;
   va_start(ap, data);
@@ -2941,12 +2942,12 @@ bx_bool bx_sb16_buffer::puts(const char *data, ...)
   {
     if (put((Bit8u) string[index]) == 0)
     {
-      free(string);
+      delete [] string;
       return 0;  // buffer full
     }
     index++;
   }
-  free(string);
+  delete [] string;
   return 1;
 }
 

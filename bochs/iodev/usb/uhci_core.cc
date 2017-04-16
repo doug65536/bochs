@@ -3,7 +3,7 @@
 /////////////////////////////////////////////////////////////////////////
 //
 //  Copyright (C) 2009-2015  Benjamin D Lunt (fys [at] fysnet [dot] net)
-//                2009-2015  The Bochs Project
+//                2009-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -65,26 +65,20 @@ bx_uhci_core_c::bx_uhci_core_c()
 {
   put("uhci_core", "UHCIC");
   memset((void*)&hub, 0, sizeof(bx_uhci_core_t));
-  device_buffer = NULL;
   hub.timer_index = BX_NULL_TIMER_HANDLE;
 }
 
 bx_uhci_core_c::~bx_uhci_core_c()
 {
-  if (device_buffer != NULL)
-    delete [] device_buffer;
-
   BX_DEBUG(("Exit"));
 }
 
 void bx_uhci_core_c::init_uhci(Bit8u devfunc, Bit16u devid, Bit8u headt, Bit8u intp)
 {
-  device_buffer = new Bit8u[65536];
-
   // Call our timer routine every 1mS (1,000uS)
   // Continuous and active
   hub.timer_index =
-    bx_pc_system.register_timer(this, uhci_timer_handler, 1000, 1,1, "usb.timer");
+    DEV_register_timer(this, uhci_timer_handler, 1000, 1,1, "usb.timer");
 
   hub.devfunc = devfunc;
   DEV_register_pci_handlers(this, &hub.devfunc, BX_PLUGIN_USB_UHCI,
@@ -98,6 +92,7 @@ void bx_uhci_core_c::init_uhci(Bit8u devfunc, Bit16u devid, Bit8u headt, Bit8u i
   for (int i=0; i<USB_UHCI_PORTS; i++) {
     hub.usb_port[i].device = NULL;
   }
+  packets = NULL;
 }
 
 void bx_uhci_core_c::reset_uhci(unsigned type)
@@ -168,6 +163,10 @@ void bx_uhci_core_c::reset_uhci(unsigned type)
       set_connect_status(j, hub.usb_port[j].device->get_type(), 1);
     }
   }
+  while (packets != NULL) {
+    usb_cancel_packet(&packets->packet);
+    remove_async_packet(&packets, packets);
+  }
 }
 
 void bx_uhci_core_c::register_state(bx_list_c *parent)
@@ -219,6 +218,7 @@ void bx_uhci_core_c::register_state(bx_list_c *parent)
     // empty list for USB device state
     new bx_list_c(port, "device");
   }
+  // TODO: handle async packets
   register_pci_state(hub1);
 
   BXRS_PARAM_BOOL(list, busy, busy);
@@ -739,9 +739,40 @@ void bx_uhci_core_c::uhci_timer(void)
   //    However, since we don't do anything, let's not.
 }
 
+void uhci_event_handler(int event, USBPacket *packet, void *dev, int port)
+{
+  ((bx_uhci_core_c*)dev)->event_handler(event, packet, port);
+}
+
+void bx_uhci_core_c::event_handler(int event, USBPacket *packet, int port)
+{
+  if (event == USB_EVENT_ASYNC) {
+    BX_DEBUG(("Async packet completion"));
+    USBAsync *p = container_of_usb_packet(packet);
+    p->done = 1;
+  } else if (event == USB_EVENT_WAKEUP) {
+    if (hub.usb_port[port].suspend && !hub.usb_port[port].resume) {
+      hub.usb_port[port].resume = 1;
+    }
+    // if in suspend state, signal resume
+    if (hub.usb_command.suspend) {
+      hub.usb_command.resume = 1;
+      hub.usb_status.resume = 1;
+      if (hub.usb_enable.resume) {
+        hub.usb_status.interrupt = 1;
+      }
+      update_irq();
+    }
+  } else {
+    BX_ERROR(("unknown/unsupported event (id=%d) on port #%d", event, port+1));
+  }
+}
+
 bx_bool bx_uhci_core_c::DoTransfer(Bit32u address, Bit32u queue_num, struct TD *td) {
 
   int len = 0, ret = 0;
+  USBAsync *p;
+  bx_bool completion;
 
   Bit16u maxlen = (td->dword2 >> 21);
   Bit8u  addr   = (td->dword2 >> 8) & 0x7F;
@@ -750,6 +781,12 @@ bx_bool bx_uhci_core_c::DoTransfer(Bit32u address, Bit32u queue_num, struct TD *
 
   BX_DEBUG(("QH%03i:TD found at address: 0x%08X", queue_num, address));
   BX_DEBUG(("  %08X   %08X   %08X   %08X", td->dword0, td->dword1, td->dword2, td->dword3));
+
+  p = find_async_packet(&packets, address);
+  completion = (p != NULL);
+  if (completion && !p->done) {
+    return 0;
+  }
 
   // check TD to make sure it is valid
   // A max length 0x500 to 0x77E is illegal
@@ -769,50 +806,59 @@ bx_bool bx_uhci_core_c::DoTransfer(Bit32u address, Bit32u queue_num, struct TD *
   maxlen++;
   maxlen &= 0x7FF;
 
-  usb_packet.pid = pid;
-  usb_packet.devaddr = addr;
-  usb_packet.devep = endpt;
-  usb_packet.data = device_buffer;
-  usb_packet.len = maxlen;
-  usb_packet.complete_cb = NULL;
-  usb_packet.complete_dev = this;
-  switch (pid) {
-    case USB_TOKEN_OUT:
-    case USB_TOKEN_SETUP:
-      if (maxlen > 0) {
-        DEV_MEM_READ_PHYSICAL_DMA(td->dword3, maxlen, device_buffer);
-      }
-      ret = broadcast_packet(&usb_packet);
-      len = maxlen;
-      break;
-    case USB_TOKEN_IN:
-      ret = broadcast_packet(&usb_packet);
-      if (ret >= 0) {
-        len = ret;
-        if (len > maxlen) {
-          len = maxlen;
-          ret = USB_RET_BABBLE;
+  if (completion) {
+    ret = p->packet.len;
+  } else {
+    p = create_async_packet(&packets, address, maxlen);
+    p->packet.pid = pid;
+    p->packet.devaddr = addr;
+    p->packet.devep = endpt;
+    p->packet.complete_cb = uhci_event_handler;
+    p->packet.complete_dev = this;
+    switch (pid) {
+      case USB_TOKEN_OUT:
+      case USB_TOKEN_SETUP:
+        if (maxlen > 0) {
+          DEV_MEM_READ_PHYSICAL_DMA(td->dword3, maxlen, p->packet.data);
         }
-        if (len > 0) {
-          DEV_MEM_WRITE_PHYSICAL_DMA(td->dword3, len, device_buffer);
-        }
-      } else {
-        len = 0;
-      }
-      break;
-    default:
-      hub.usb_status.host_error = 1;
-      update_irq();
+        ret = broadcast_packet(&p->packet);
+        len = maxlen;
+        break;
+      case USB_TOKEN_IN:
+        ret = broadcast_packet(&p->packet);
+        break;
+      default:
+        hub.usb_status.host_error = 1;
+        update_irq();
+        return 0;
+    }
+    if (ret == USB_RET_ASYNC) {
+      BX_DEBUG(("Async packet deferred"));
       return 0;
+    }
   }
-  if (ret == USB_RET_ASYNC) {
-    BX_ERROR(("Async packet handling not implemented yet"));
+  if (pid == USB_TOKEN_IN) {
+    if (ret >= 0) {
+      len = ret;
+      if (len > maxlen) {
+        len = maxlen;
+        ret = USB_RET_BABBLE;
+      }
+      if (len > 0) {
+        DEV_MEM_WRITE_PHYSICAL_DMA(td->dword3, len, p->packet.data);
+      }
+    } else {
+      len = 0;
+    }
   }
   if (ret >= 0) {
     set_status(td, 0, 0, 0, 0, 0, 0, len-1);
+  } else if (ret == USB_RET_NAK) {
+    set_status(td, 0, 0, 0, 1, 0, 0, len-1); // NAK
   } else {
     set_status(td, 1, 0, 0, 0, 0, 0, 0x007); // stalled
   }
+  remove_async_packet(&packets, p);
   return 1;
 }
 
@@ -845,27 +891,8 @@ void bx_uhci_core_c::set_status(struct TD *td, bx_bool stalled, bx_bool data_buf
   td->dword1 |= crc_time_out      ? (1<<18) : 0; // crc/timeout
   td->dword1 |= bitstuff_error    ? (1<<17) : 0; // bitstuff error
   td->dword1 |= (act_len & 0x7FF);               // actual length
-  if (stalled || data_buffer_error || babble || nak || crc_time_out || bitstuff_error)
+  if (stalled || data_buffer_error || babble || crc_time_out || bitstuff_error)
     td->dword1 &= ~((1<<28) | (1<<27));  // clear the c_err field in there was an error
-}
-
-// pci configuration space read callback handler
-Bit32u bx_uhci_core_c::pci_read_handler(Bit8u address, unsigned io_len)
-{
-  Bit32u value = 0;
-
-  for (unsigned i=0; i<io_len; i++) {
-    value |= (pci_conf[address+i] << (i*8));
-  }
-
-  if (io_len == 1)
-    BX_DEBUG(("read  PCI register 0x%02x value 0x%02x", address, value));
-  else if (io_len == 2)
-    BX_DEBUG(("read  PCI register 0x%02x value 0x%04x", address, value));
-  else if (io_len == 4)
-    BX_DEBUG(("read  PCI register 0x%02x value 0x%08x", address, value));
-
-  return value;
 }
 
 
@@ -949,11 +976,12 @@ void bx_uhci_core_c::set_connect_status(Bit8u port, int type, bx_bool connected)
             break;
           case USB_SPEED_HIGH:
           case USB_SPEED_SUPER:
-            BX_PANIC(("HC supports 'low' or 'full' speed devices only."));
-            device->set_speed(USB_SPEED_FULL);
-            break;
+            BX_ERROR(("HC ignores device with unsupported speed"));
+            return;
           default:
-            BX_ERROR(("device->get_speed() returned invalid speed value"));
+            BX_PANIC(("USB device returned invalid speed value"));
+            set_connect_status(port, type, 0);
+            return;
         }
         if (hub.usb_port[port].low_speed) {
           hub.usb_port[port].line_dminus = 1;  //  dminus=1 & dplus=0 = low speed  (at idle time)
@@ -979,10 +1007,12 @@ void bx_uhci_core_c::set_connect_status(Bit8u port, int type, bx_bool connected)
           if (!device->init()) {
             set_connect_status(port, type, 0);
             BX_ERROR(("port #%d: connect failed", port+1));
+            return;
           } else {
             BX_INFO(("port #%d: connect: %s", port+1, device->get_info()));
           }
         }
+        device->set_event_handler(this, uhci_event_handler, port);
       } else {
         hub.usb_port[port].status = 0;
         hub.usb_port[port].connect_changed = 1;

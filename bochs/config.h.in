@@ -1,5 +1,5 @@
 //
-//  Copyright (C) 2001-2015  The Bochs Project
+//  Copyright (C) 2001-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -296,8 +296,12 @@
 // for wxWidgets only.
 #define BX_USE_TEXTCONFIG 1
 
+// BX_USE_GUI should be set to 1 for all guis with VGA console support
+// for 'textconfig'.
+#define BX_USE_GUI_CONSOLE 0
+
 // BX_USE_WIN32CONFIG should be set to 1 on WIN32 for the guis
-// "win32" and "sdl" only.
+// "win32", "sdl" and "sdl2" only.
 #if BX_USE_TEXTCONFIG && defined(WIN32) && (BX_WITH_WIN32 || BX_WITH_SDL || BX_WITH_SDL2)
   #define BX_USE_WIN32CONFIG 1
 #else
@@ -875,6 +879,7 @@ typedef
 #define BX_NETMOD_TUNTAP  0
 #define BX_NETMOD_VDE     0
 #define BX_NETMOD_SLIRP   0
+#define BX_NETMOD_SOCKET  0
 
 // Soundcard and gameport support
 #define BX_SUPPORT_SB16     0
@@ -900,6 +905,11 @@ typedef
 //    file   Wave and midi output to file
 //    dummy  Dummy functions, no output
 #define BX_SOUND_LOWLEVEL_NAME "dummy"
+// resampling support
+#define BX_HAVE_LIBSAMPLERATE  0
+#define BX_HAVE_SOXR_LSR       0
+// SDL2 audio capture support (version >= 2.0.5)
+#define BX_HAVE_SDL2_AUDIO_CAPTURE 0
 #endif
 
 #if (BX_SUPPORT_ES1370 && !BX_SUPPORT_PCI)
