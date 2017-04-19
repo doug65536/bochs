@@ -93,6 +93,7 @@ void bx_dbg_set_rip_value(bx_address value);
 void bx_dbg_load_segreg(unsigned reg, unsigned value);
 bx_address bx_dbg_get_laddr(Bit16u sel, bx_address ofs);
 void bx_dbg_step_over_command(void);
+void bx_dbg_profile_command(char const *arg);
 void bx_dbg_trace_command(bx_bool enable);
 void bx_dbg_trace_reg_command(bx_bool enable);
 void bx_dbg_trace_mem_command(bx_bool enable);
@@ -171,7 +172,9 @@ void bx_dbg_print_help(void);
 void bx_dbg_calc_command(Bit64u value);
 void bx_dbg_dump_table(void);
 
+
 // callbacks from CPU
+void bx_dbg_profile_insn(bx_address rip);
 void bx_dbg_exception(unsigned cpu, Bit8u vector, Bit16u error_code);
 void bx_dbg_interrupt(unsigned cpu, Bit8u vector, Bit16u error_code);
 void bx_dbg_halt(unsigned cpu);

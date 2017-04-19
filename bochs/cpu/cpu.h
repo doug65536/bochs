@@ -1254,6 +1254,7 @@ public: // for now...
   Bit8u break_point;
   Bit8u magic_break;
   Bit8u stop_reason;
+  bx_bool profile;
   bx_bool trace;
   bx_bool trace_reg;
   bx_bool trace_mem;

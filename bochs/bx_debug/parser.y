@@ -91,6 +91,9 @@
 %token <sval> BX_TOKEN_STOP
 %token <sval> BX_TOKEN_DOIT
 %token <sval> BX_TOKEN_CRC
+%token <sval> BX_TOKEN_PROFILE
+%token <sval> BX_TOKEN_RESET
+%token <sval> BX_TOKEN_DETAIL
 %token <sval> BX_TOKEN_TRACE
 %token <sval> BX_TOKEN_TRACEREG
 %token <sval> BX_TOKEN_TRACEMEM
@@ -174,6 +177,7 @@ command:
     | instrument_command
     | doit_command
     | crc_command
+    | profile_command
     | trace_command
     | trace_reg_command
     | trace_mem_command
@@ -302,6 +306,38 @@ ptime_command:
       BX_TOKEN_PTIME '\n'
       {
           bx_dbg_ptime_command();
+          free($1);
+      }
+    ;
+
+profile_command:
+      BX_TOKEN_PROFILE BX_TOKEN_TOGGLE_ON_OFF '\n'
+      {
+          bx_dbg_profile_command($2 ? "on" : "off");
+          free($1);
+      }
+    ;
+
+profile_command:
+      BX_TOKEN_PROFILE BX_TOKEN_SHOW '\n'
+      {
+          bx_dbg_profile_command($2);
+          free($1);
+      }
+    ;
+
+profile_command:
+      BX_TOKEN_PROFILE BX_TOKEN_RESET '\n'
+      {
+          bx_dbg_profile_command($2);
+          free($1);
+      }
+    ;
+
+profile_command:
+      BX_TOKEN_PROFILE BX_TOKEN_DETAIL '\n'
+      {
+          bx_dbg_profile_command($2);
           free($1);
       }
     ;

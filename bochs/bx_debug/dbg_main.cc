@@ -43,6 +43,14 @@ extern "C" {
 }
 #endif
 
+#include <tr1/unordered_map>
+#include <map>
+#include <algorithm>
+#include <string>
+
+typedef typename std::tr1::unordered_map<bx_address,Bit64u> dbg_profiler_table_t;
+dbg_profiler_table_t bx_profile_data;
+
 // default CPU in the debugger.  For commands like "dump_cpu" it will
 // use the default instead of always dumping all cpus.
 unsigned dbg_cpu = 0;
@@ -535,6 +543,11 @@ void CDECL bx_debug_ctrlc_handler(int signum)
 void bx_debug_break()
 {
   bx_guard.interrupt_requested = 1;
+}
+
+void bx_dbg_profile_insn(bx_address rip)
+{
+  ++bx_profile_data[rip];
 }
 
 void bx_dbg_exception(unsigned cpu, Bit8u vector, Bit16u error_code)
@@ -1207,6 +1220,72 @@ void bx_dbg_quit_command(void)
 {
   BX_INFO(("dbg: Quit"));
   bx_dbg_exit(0);
+}
+
+void bx_dbg_profile_command(char const *arg)
+{
+  dbg_printf("profile arg: \"%s\"\n", arg);
+  if (!strcmp(arg, "on") || !strcmp(arg, "off")) {
+    BX_CPU(dbg_cpu)->profile = (arg[1] == 'n');
+    dbg_printf("Profiling %s for CPU%d\n", BX_CPU(dbg_cpu)->profile ? "enabled" : "disabled",
+       BX_CPU(dbg_cpu)->which_cpu());
+  } else if (!strcmp(arg, "reset")) {
+    bx_profile_data.clear();
+    dbg_printf("Profile data reset\n");
+  } else if (!strcmp(arg, "detail")) {
+    typedef std::multimap<size_t,bx_address> sorted_profile_t;
+
+    sorted_profile_t sorted;
+    for (dbg_profiler_table_t::iterator i = bx_profile_data.begin();
+         i != bx_profile_data.end(); ++i)
+      sorted.insert(sorted_profile_t::value_type(i->second, i->first));
+
+    for (sorted_profile_t::reverse_iterator i = sorted.rbegin();
+         i != sorted.rend(); ++i) {
+      bx_address& addr = i->second;
+      size_t count = i->first;
+
+      char const *sym = bx_dbg_disasm_symbolic_address((addr), 0);
+      dbg_printf("%8d : %s\n", count, sym ? sym : "<unknown>");
+    }
+  } else if (!strcmp(arg, "show")) {
+    typedef std::map<std::string, size_t> sorted_by_function_t;
+
+    sorted_by_function_t by_function;
+    std::string name;
+
+    for (dbg_profiler_table_t::iterator i = bx_profile_data.begin();
+         i != bx_profile_data.end(); ++i) {
+      bx_address const& addr = i->first;
+      size_t const& count = i->second;
+
+      char const *sym = bx_dbg_disasm_symbolic_address((addr), 0);
+      if (sym) {
+        char const *sym_end = strrchr(sym, '+');
+        if (sym_end)
+          name.assign(sym, sym_end);
+        else
+          name.assign(sym);
+
+        by_function[name] += count;
+      }
+    }
+
+    typedef std::map<size_t, std::string> sorted_by_count_t;
+    sorted_by_count_t by_count;
+    for (sorted_by_function_t::iterator i = by_function.begin();
+         i != by_function.end(); ++i) {
+      by_count.insert(sorted_by_count_t::value_type(i->second, i->first));
+    }
+
+    for (sorted_by_count_t::reverse_iterator i = by_count.rbegin();
+         i != by_count.rend(); ++i) {
+      dbg_printf("%8zu : %s\n", i->first, i->second.c_str());
+    }
+  } else {
+    dbg_printf("Invalid argument to profile command,"
+               " must be one of: on, off, show, detail\n");
+  }
 }
 
 void bx_dbg_trace_command(bx_bool enable)

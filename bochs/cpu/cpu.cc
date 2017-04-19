@@ -97,6 +97,8 @@ void BX_CPU_C::cpu_loop(void)
 #if BX_DEBUGGER
       if (BX_CPU_THIS_PTR trace)
         debug_disasm_instruction(BX_CPU_THIS_PTR prev_rip);
+      if (BX_CPU_THIS_PTR profile)
+        bx_dbg_profile_insn(prev_rip);
 #endif
 
       // want to allow changing of the instruction inside instrumentation callback
