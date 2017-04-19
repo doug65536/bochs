@@ -94,6 +94,7 @@
 %token <sval> BX_TOKEN_PROFILE
 %token <sval> BX_TOKEN_RESET
 %token <sval> BX_TOKEN_DETAIL
+%token <sval> BX_TOKEN_NONE
 %token <sval> BX_TOKEN_TRACE
 %token <sval> BX_TOKEN_TRACEREG
 %token <sval> BX_TOKEN_TRACEMEM
@@ -316,26 +317,27 @@ profile_command:
           bx_dbg_profile_command($2 ? "on" : "off");
           free($1);
       }
-    ;
-
-profile_command:
-      BX_TOKEN_PROFILE BX_TOKEN_SHOW '\n'
+    | BX_TOKEN_PROFILE BX_TOKEN_SHOW '\n'
       {
           bx_dbg_profile_command($2);
           free($1);
       }
-    ;
-
-profile_command:
-      BX_TOKEN_PROFILE BX_TOKEN_RESET '\n'
+    | BX_TOKEN_PROFILE BX_TOKEN_ALL '\n'
       {
           bx_dbg_profile_command($2);
           free($1);
       }
-    ;
-
-profile_command:
-      BX_TOKEN_PROFILE BX_TOKEN_DETAIL '\n'
+    | BX_TOKEN_PROFILE BX_TOKEN_NONE '\n'
+      {
+          bx_dbg_profile_command($2);
+          free($1);
+      }
+    | BX_TOKEN_PROFILE BX_TOKEN_RESET '\n'
+      {
+          bx_dbg_profile_command($2);
+          free($1);
+      }
+    | BX_TOKEN_PROFILE BX_TOKEN_DETAIL '\n'
       {
           bx_dbg_profile_command($2);
           free($1);

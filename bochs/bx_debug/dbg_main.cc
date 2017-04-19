@@ -1224,40 +1224,67 @@ void bx_dbg_quit_command(void)
 
 void bx_dbg_profile_command(char const *arg)
 {
-  dbg_printf("profile arg: \"%s\"\n", arg);
   if (!strcmp(arg, "on") || !strcmp(arg, "off")) {
+    //
+    // on and off
+
     BX_CPU(dbg_cpu)->profile = (arg[1] == 'n');
     dbg_printf("Profiling %s for CPU%d\n", BX_CPU(dbg_cpu)->profile ? "enabled" : "disabled",
        BX_CPU(dbg_cpu)->which_cpu());
+  } else if (!strcmp(arg, "all") || !strcmp(arg, "none")) {
+    //
+    // all and none
+
+    for (size_t i = 0; i < BX_SMP_PROCESSORS; ++i) {
+      BX_CPU(i)->profile = (arg[0] == 'a');
+      dbg_printf("Profiling %s for CPU%d\n", BX_CPU(i)->profile ? "enabled" : "disabled",
+         BX_CPU(i)->which_cpu());
+    }
   } else if (!strcmp(arg, "reset")) {
+    //
+    // reset
+
     bx_profile_data.clear();
     dbg_printf("Profile data reset\n");
   } else if (!strcmp(arg, "detail")) {
-    typedef std::multimap<size_t,bx_address> sorted_profile_t;
+    //
+    // detail
+
+    typedef std::multimap<Bit64u,bx_address> sorted_profile_t;
 
     sorted_profile_t sorted;
+    Bit64u total = 0;
     for (dbg_profiler_table_t::iterator i = bx_profile_data.begin();
-         i != bx_profile_data.end(); ++i)
+         i != bx_profile_data.end(); ++i) {
       sorted.insert(sorted_profile_t::value_type(i->second, i->first));
+      total += i->first;
+    }
 
     for (sorted_profile_t::reverse_iterator i = sorted.rbegin();
          i != sorted.rend(); ++i) {
       bx_address& addr = i->second;
-      size_t count = i->first;
+      Bit64u count = i->first;
 
       char const *sym = bx_dbg_disasm_symbolic_address((addr), 0);
-      dbg_printf("%8d : %s\n", count, sym ? sym : "<unknown>");
+      dbg_printf("(%6.2f%%) %8d : %s\n", 100.0 * count / total,
+                 count, sym ? sym : "<unknown>");
     }
   } else if (!strcmp(arg, "show")) {
-    typedef std::map<std::string, size_t> sorted_by_function_t;
+    //
+    // show
+
+    typedef std::map<std::string, Bit64u> sorted_by_function_t;
 
     sorted_by_function_t by_function;
     std::string name;
 
+    Bit64u total = 0;
     for (dbg_profiler_table_t::iterator i = bx_profile_data.begin();
          i != bx_profile_data.end(); ++i) {
       bx_address const& addr = i->first;
-      size_t const& count = i->second;
+      Bit64u const& count = i->second;
+
+      total += count;
 
       char const *sym = bx_dbg_disasm_symbolic_address((addr), 0);
       if (sym) {
@@ -1271,7 +1298,7 @@ void bx_dbg_profile_command(char const *arg)
       }
     }
 
-    typedef std::map<size_t, std::string> sorted_by_count_t;
+    typedef std::map<Bit64u, std::string> sorted_by_count_t;
     sorted_by_count_t by_count;
     for (sorted_by_function_t::iterator i = by_function.begin();
          i != by_function.end(); ++i) {
@@ -1280,9 +1307,13 @@ void bx_dbg_profile_command(char const *arg)
 
     for (sorted_by_count_t::reverse_iterator i = by_count.rbegin();
          i != by_count.rend(); ++i) {
-      dbg_printf("%8zu : %s\n", i->first, i->second.c_str());
+      dbg_printf("(%6.2f%%) %8zu : %s\n", 100.0 * i->first / total,
+                 i->first, i->second.c_str());
     }
   } else {
+    //
+    // invalid argument
+
     dbg_printf("Invalid argument to profile command,"
                " must be one of: on, off, show, detail\n");
   }
