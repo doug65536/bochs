@@ -7,8 +7,8 @@
 #include <string.h>
 
 #ifdef WIN32
-	#include <io.h>
-	#define YY_NO_UNISTD_H
+    #include <io.h>
+    #define YY_NO_UNISTD_H
 #endif
 
 #include "debug.h"
@@ -61,6 +61,7 @@ static unsigned lex_input_size = 0;
 set             { bxlval.sval = strdup(bxtext); return(BX_TOKEN_SET); }
 on              { bxlval.bval = 1; return(BX_TOKEN_ON); }
 off             { bxlval.bval = 0; return(BX_TOKEN_OFF); }
+ram             { bxlval.bval = 1; return(BX_TOKEN_RAM); }
 crc             { bxlval.sval = strdup(bxtext); return(BX_TOKEN_CRC); }
 c               |
 cont            |

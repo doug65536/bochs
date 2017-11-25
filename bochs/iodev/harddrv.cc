@@ -1711,8 +1711,8 @@ void bx_hard_drive_c::write(Bit32u address, Bit32u value, unsigned io_len)
                     break;
                   }
 
-                  // Ben: see comment below
-                  if ((lba + transfer_length - 1) > BX_SELECTED_DRIVE(channel).cdrom.max_lba) {
+                  // DougGale: expand lba to 64 bit to handle integer overflow correctly
+                  if ((Bit64u(lba) + transfer_length - 1) > BX_SELECTED_DRIVE(channel).cdrom.max_lba) {
                     transfer_length = (BX_SELECTED_DRIVE(channel).cdrom.max_lba - lba + 1);
                   }
                   if (transfer_length <= 0) {
@@ -1722,18 +1722,17 @@ void bx_hard_drive_c::write(Bit32u address, Bit32u value, unsigned io_len)
                     break;
                   }
 
-/* Ben: I commented this out and added the three lines above.  I am not sure this is the correct thing
-        to do, but it seems to work.
-        FIXME: I think that if the transfer_length is more than we can transfer, we should return
-        some sort of flag/error/bitrep stating so.  I haven't read the atapi specs enough to know
-        what needs to be done though.
-
-                  if ((lba + transfer_length - 1) > BX_SELECTED_DRIVE(channel).cdrom.max_lba) {
+                  // MMC Spec 4.1.3.1, Logical Blocks:
+                  //  "If a command is issued that requests access to a logical block
+                  //   address not within the capacity of the medium, the command shall
+                  //   be terminated with CHECK CONDITION status and the SK/ASC/ASCQ values
+                  //   shall be set to ILLEGAL REQUEST/LOGICAL BLOCK ADDRESS OUT OF RANGE."
+                  if ((Bit64u(lba) + transfer_length - 1) > BX_SELECTED_DRIVE(channel).cdrom.max_lba) {
                     atapi_cmd_error(channel, SENSE_ILLEGAL_REQUEST, ASC_LOGICAL_BLOCK_OOR, 1);
                     raise_interrupt(channel);
                     break;
                   }
-*/
+
                   BX_DEBUG_ATAPI(("cdrom: READ (%d) LBA=%d LEN=%d DMA=%d", atapi_command==0x28?10:12,
                                   lba, transfer_length, controller->packet_dma));
 
@@ -3305,6 +3304,9 @@ bx_bool bx_hard_drive_c::bmdma_read_sector(Bit8u channel, Bit8u *buffer, Bit32u 
         case 0x28: // read (10)
         case 0xa8: // read (12)
         case 0xbe: // read cd
+          if (BX_SELECTED_DRIVE(channel).cdrom.remaining_blocks == 0)
+              return 0;
+
           *sector_size = controller->buffer_size;
           if (!BX_SELECTED_DRIVE(channel).cdrom.ready) {
             BX_PANIC(("Read with CDROM not ready"));
@@ -3312,6 +3314,9 @@ bx_bool bx_hard_drive_c::bmdma_read_sector(Bit8u channel, Bit8u *buffer, Bit32u 
           }
           /* set status bar conditions for device */
           bx_gui->statusbar_setitem(BX_SELECTED_DRIVE(channel).statusbar_id, 1);
+          BX_DEBUG_ATAPI(("ata%d-%d: bmdma_read_sector(): reading lba %u\n",
+                          channel, BX_SLAVE_SELECTED(channel),
+                          BX_SELECTED_DRIVE(channel).cdrom.next_lba));
           if (!BX_SELECTED_DRIVE(channel).cdrom.cd->read_block(buffer, BX_SELECTED_DRIVE(channel).cdrom.next_lba,
                                                                controller->buffer_size))
           {
@@ -3320,6 +3325,9 @@ bx_bool bx_hard_drive_c::bmdma_read_sector(Bit8u channel, Bit8u *buffer, Bit32u 
           }
           BX_SELECTED_DRIVE(channel).cdrom.next_lba++;
           BX_SELECTED_DRIVE(channel).cdrom.remaining_blocks--;
+          BX_DEBUG_ATAPI(("ata%d-%d: bmdma_read_sector(): remaining blocks %u\n",
+                          channel, BX_SLAVE_SELECTED(channel),
+                          BX_SELECTED_DRIVE(channel).cdrom.remaining_blocks));
           if (!BX_SELECTED_DRIVE(channel).cdrom.remaining_blocks) {
             BX_SELECTED_DRIVE(channel).cdrom.curr_lba = BX_SELECTED_DRIVE(channel).cdrom.next_lba;
           }

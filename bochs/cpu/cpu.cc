@@ -95,10 +95,17 @@ void BX_CPU_C::cpu_loop(void)
     for(;;) {
 
 #if BX_DEBUGGER
-      if (BX_CPU_THIS_PTR trace)
-        debug_disasm_instruction(BX_CPU_THIS_PTR prev_rip);
       if (BX_CPU_THIS_PTR profile)
         bx_dbg_profile_insn(prev_rip);
+
+      if (unlikely(BX_CPU_THIS_PTR trace == 1)) {
+        debug_disasm_instruction(BX_CPU_THIS_PTR prev_rip);
+      } else if (unlikely(BX_CPU_THIS_PTR trace == 2)) {
+        if (!BX_CPU_THIS_PTR real_mode() ||
+           BX_CPU_THIS_PTR sregs[BX_SEG_REG_CS].selector.value < 0xC000) {
+          debug_disasm_instruction(BX_CPU_THIS_PTR prev_rip);
+        }
+      }
 #endif
 
       // want to allow changing of the instruction inside instrumentation callback
@@ -602,7 +609,7 @@ void BX_CPU_C::prefetch(void)
   if ((tlbEntry->lpf == lpf) && (tlbEntry->accessBits & (0x10 << USER_PL)) != 0) {
     BX_CPU_THIS_PTR pAddrFetchPage = tlbEntry->ppf;
     fetchPtr = (Bit8u*) tlbEntry->hostPageAddr;
-  }  
+  }
   else {
     bx_phy_address pAddr = translate_linear(tlbEntry, laddr, USER_PL, BX_EXECUTE);
     BX_CPU_THIS_PTR pAddrFetchPage = PPFOf(pAddr);
@@ -670,7 +677,7 @@ bx_bool BX_CPU_C::dbg_instruction_epilog(void)
     return(1); // on a breakpoint
   }
 
-  // see if debugger requesting icount guard 
+  // see if debugger requesting icount guard
   if (bx_guard.guard_for & BX_DBG_GUARD_ICOUNT) {
     if (get_icount() >= BX_CPU_THIS_PTR guard_found.icount_max) {
       return(1);

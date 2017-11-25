@@ -94,7 +94,7 @@ void bx_dbg_load_segreg(unsigned reg, unsigned value);
 bx_address bx_dbg_get_laddr(Bit16u sel, bx_address ofs);
 void bx_dbg_step_over_command(void);
 void bx_dbg_profile_command(char const *arg);
-void bx_dbg_trace_command(bx_bool enable);
+void bx_dbg_trace_command(int enable);
 void bx_dbg_trace_reg_command(bx_bool enable);
 void bx_dbg_trace_mem_command(bx_bool enable);
 void bx_dbg_ptime_command(void);

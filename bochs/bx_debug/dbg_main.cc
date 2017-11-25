@@ -652,7 +652,7 @@ void bx_dbg_lin_memory_access(unsigned cpu, bx_address lin, bx_phy_address phy, 
     return;
 
   dbg_printf("[CPU%d %s]: LIN 0x" FMT_ADDRX " PHY 0x" FMT_PHY_ADDRX " (len=%d, %s)",
-     cpu, 
+     cpu,
      (rw == BX_WRITE) ? "WR" : "RD",
      lin, phy, len, get_memtype_name(memtype));
 
@@ -743,7 +743,7 @@ void bx_dbg_phy_memory_access(unsigned cpu, bx_phy_address phy, unsigned len, un
   if (memtype > BX_MEMTYPE_INVALID) memtype = BX_MEMTYPE_INVALID;
 
   dbg_printf("[CPU%d %s]: PHY 0x" FMT_PHY_ADDRX " (len=%d, %s)",
-     cpu, 
+     cpu,
      (rw == BX_WRITE) ? "WR" : "RD",
      phy, len, get_memtype_name(memtype));
 
@@ -1319,10 +1319,14 @@ void bx_dbg_profile_command(char const *arg)
   }
 }
 
-void bx_dbg_trace_command(bx_bool enable)
+void bx_dbg_trace_command(int enable)
 {
   BX_CPU(dbg_cpu)->trace = enable;
-  dbg_printf("Tracing %s for CPU%d\n", enable ? "enabled" : "disabled",
+  dbg_printf("Tracing %s for CPU%d\n",
+     enable == 1 ? "enabled" :
+     enable == 0 ? "disabled" :
+     enable == 2 ? "ram instructions" :
+     "unknown!",
      BX_CPU(dbg_cpu)->which_cpu());
 }
 
@@ -2184,7 +2188,7 @@ void bx_dbg_disassemble_current(int which_cpu, int print_time)
 
     bxInstruction_c i;
     disasm(bx_disasm_ibuf, IS_CODE_32(BX_CPU(which_cpu)->guard_found.code_32_64),
-        IS_CODE_64(BX_CPU(which_cpu)->guard_found.code_32_64), 
+        IS_CODE_64(BX_CPU(which_cpu)->guard_found.code_32_64),
         bx_disasm_tbuf, &i,
         BX_CPU(which_cpu)->get_segment_base(BX_SEG_REG_CS), BX_CPU(which_cpu)->guard_found.eip);
 
@@ -2787,8 +2791,8 @@ void bx_dbg_examine_command(const char *command, const char *format, bx_bool for
           unit_size = ch;
           break;
 
-	case 'm': // memory dump
-	  memory_dump = true;
+    case 'm': // memory dump
+      memory_dump = true;
           break;
 
         default:
@@ -3182,7 +3186,7 @@ void bx_dbg_restore_command(const char *param_name, const char *restore_path)
 
 void bx_dbg_disassemble_current(const char *format)
 {
-  Bit64u addr = bx_dbg_get_laddr(bx_dbg_get_selector_value(BX_SEG_REG_CS), 
+  Bit64u addr = bx_dbg_get_laddr(bx_dbg_get_selector_value(BX_SEG_REG_CS),
      BX_CPU(dbg_cpu)->get_instruction_pointer());
   bx_dbg_disassemble_command(format, addr, addr);
 }
@@ -3315,7 +3319,7 @@ void bx_dbg_print_descriptor(Bit32u lo, Bit32u hi)
   } else {
     // types from IA32-devel-guide-3, page 3-15.
     static const char *undef = "???";
-    static const char *type_names[16] = { 
+    static const char *type_names[16] = {
         undef,
         "16-Bit TSS (available)",
         "LDT",
@@ -3377,7 +3381,7 @@ void bx_dbg_print_descriptor64(Bit32u lo1, Bit32u hi1, Bit32u lo2, Bit32u hi2)
   }
   else {
     static const char *undef = "???";
-    static const char *type_names[16] = { 
+    static const char *type_names[16] = {
         undef,
         undef,
         "LDT",

@@ -96,6 +96,7 @@
 %token <sval> BX_TOKEN_DETAIL
 %token <sval> BX_TOKEN_NONE
 %token <sval> BX_TOKEN_TRACE
+%token <sval> BX_TOKEN_RAM
 %token <sval> BX_TOKEN_TRACEREG
 %token <sval> BX_TOKEN_TRACEMEM
 %token <sval> BX_TOKEN_SWITCH_MODE
@@ -245,7 +246,7 @@ modebp_command:
           free($1);
       }
     ;
-    
+
 vmexitbp_command:
       BX_TOKEN_VMEXITBP '\n'
       {
@@ -253,7 +254,7 @@ vmexitbp_command:
           free($1);
       }
     ;
-    
+
 show_command:
       BX_TOKEN_SHOW BX_TOKEN_GENERIC '\n'
       {
@@ -348,6 +349,11 @@ trace_command:
       BX_TOKEN_TRACE BX_TOKEN_TOGGLE_ON_OFF '\n'
       {
           bx_dbg_trace_command($2);
+          free($1);
+      }
+    | BX_TOKEN_TRACE BX_TOKEN_RAM '\n'
+      {
+          bx_dbg_trace_command(2);
           free($1);
       }
     ;
@@ -542,35 +548,35 @@ set_command:
         free($1); free($2);
       }
     | BX_TOKEN_SET BX_TOKEN_8BL_REG '=' expression '\n'
-      { 
+      {
         bx_dbg_set_reg8l_value($2, $4);
       }
     | BX_TOKEN_SET BX_TOKEN_8BH_REG '=' expression '\n'
-      { 
+      {
         bx_dbg_set_reg8h_value($2, $4);
       }
     | BX_TOKEN_SET BX_TOKEN_16B_REG '=' expression '\n'
-      { 
+      {
         bx_dbg_set_reg16_value($2, $4);
       }
     | BX_TOKEN_SET BX_TOKEN_32B_REG '=' expression '\n'
-      { 
+      {
         bx_dbg_set_reg32_value($2, $4);
       }
     | BX_TOKEN_SET BX_TOKEN_64B_REG '=' expression '\n'
-      { 
+      {
         bx_dbg_set_reg64_value($2, $4);
       }
     | BX_TOKEN_SET BX_TOKEN_REG_EIP '=' expression '\n'
-      { 
+      {
         bx_dbg_set_rip_value($4);
       }
     | BX_TOKEN_SET BX_TOKEN_REG_RIP '=' expression '\n'
-      { 
+      {
         bx_dbg_set_rip_value($4);
       }
     | BX_TOKEN_SET BX_TOKEN_SEGREG '=' expression '\n'
-      { 
+      {
         bx_dbg_load_segreg($2, $4);
       }
     ;
@@ -730,7 +736,7 @@ info_command:
 optional_numeric :
    /* empty */ { $$ = EMPTY_ARG; }
    | expression;
-   
+
 regs_command:
       BX_TOKEN_REGISTERS '\n'
       {
@@ -1060,6 +1066,7 @@ help_command:
      | BX_TOKEN_HELP BX_TOKEN_TRACE '\n'
        {
          dbg_printf("trace on  - print disassembly for every executed instruction\n");
+         dbg_printf("trace ram - exclude C0000-FFFFF in real mode\n");
          dbg_printf("trace off - disable instruction tracing\n");
          free($1);free($2);
        }
