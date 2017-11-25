@@ -72,15 +72,13 @@ static char *argv0 = NULL;
 
 static FILE *debugger_log = NULL;
 
-static struct {
+static struct bx_debugger_state {
   // some fields used for single CPU debugger
   bx_bool  auto_disassemble;
   unsigned disassemble_size;
   char     default_display_format;
   char     default_unit_size;
   bx_address default_addr;
-  unsigned next_bpoint_id;
-  unsigned next_wpoint_id;
 } bx_debugger;
 
 typedef struct _debug_info_t {
@@ -107,7 +105,7 @@ void CDECL bx_debug_ctrlc_handler(int signum);
 static void bx_unnest_infile(void);
 static void bx_get_command(void);
 static void bx_dbg_print_guard_results();
-static void bx_dbg_breakpoint_changed(void);
+extern void bx_dbg_breakpoint_changed(void);
 static void bx_dbg_set_icount_guard(int which_cpu, Bit32u n);
 
 bx_guard_t bx_guard;
@@ -237,8 +235,6 @@ int bx_dbg_main(void)
   bx_debugger.default_display_format = 'x';
   bx_debugger.default_unit_size      = 'w';
   bx_debugger.default_addr = 0;
-  bx_debugger.next_bpoint_id = 1;
-  bx_debugger.next_wpoint_id = 1;
 
   dbg_cpu_list = (bx_list_c*) SIM->get_param("cpu0", SIM->get_bochs_root());
   const char *debugger_log_filename = SIM->get_param_string(BXPN_DEBUGGER_LOG_FILENAME)->getptr();
@@ -360,8 +356,7 @@ reparse:
       // means, the extensions have handled the command
       if (bx_dbg_extensions(tmp_buf_ptr)==0) {
         // process command here
-        bx_add_lex_input(tmp_buf_ptr);
-        bxparse();
+        bx_dbg_interpret_line(tmp_buf_ptr);
       }
     }
   }
@@ -508,7 +503,7 @@ int bxwrap(void)
 char* bxtext;
 #endif
 
-void bxerror(char *s)
+void bxerror(const char *s)
 {
   dbg_printf("%s:%d: %s at '%s'\n", bx_infile_stack[bx_infile_stack_index].fname,
     bx_infile_stack[bx_infile_stack_index].lineno, s, bxtext);
@@ -1404,6 +1399,15 @@ inserted:
   dbg_printf("Time breakpoint inserted. Delta = " FMT_LL "u\n", diff);
 }
 
+Bit64u conv_8xBit8u_to_Bit64u(const Bit8u* buf)
+{
+  Bit64u ret = 0;
+  for (int i = 0; i < 8; i++) {
+    ret |= (buf[i] << (8 * i));
+  }
+  return ret;
+}
+
 Bit32u conv_4xBit8u_to_Bit32u(const Bit8u* buf)
 {
   Bit32u ret = 0;
@@ -1815,8 +1819,7 @@ void bx_dbg_print_stack_command(unsigned nwords)
     if (! bx_dbg_read_linear(dbg_cpu, linear_sp, len, buf)) break;
 #if BX_SUPPORT_X86_64
     if (len == 8) {
-      Bit64u addr_on_stack = conv_4xBit8u_to_Bit32u(buf) |
-          (Bit64u)conv_4xBit8u_to_Bit32u(buf+4) << 32;
+      Bit64u addr_on_stack = conv_8xBit8u_to_Bit64u(buf);
       const char *Sym=bx_dbg_disasm_symbolic_address(addr_on_stack, 0);
       dbg_printf(" | STACK 0x%08x%08x [0x%08x:0x%08x] (%s)\n",
         GET32H(linear_sp), GET32L(linear_sp),
@@ -1895,8 +1898,7 @@ void bx_dbg_bt_command(unsigned dist)
       break;
 #if BX_SUPPORT_X86_64
     if (len == 8) {
-      addr_on_stack = conv_4xBit8u_to_Bit32u(buf) |
-          (Bit64u)conv_4xBit8u_to_Bit32u(buf+4) << 32;
+      addr_on_stack = conv_8xBit8u_to_Bit64u(buf);
       const char *Sym=bx_dbg_disasm_symbolic_address(addr_on_stack, 0);
       dbg_printf("%012" FMT_64 "x -> %012" FMT_64 "x (%s)\n",
                  (Bit64u)addr,
@@ -1906,8 +1908,7 @@ void bx_dbg_bt_command(unsigned dist)
       // Get next frame pointer
       if (!bx_dbg_read_linear(dbg_cpu, addr, len, buf))
         break;
-      linear_bp = conv_4xBit8u_to_Bit32u(buf) |
-          (Bit64u)conv_4xBit8u_to_Bit32u(buf+4) << 32;
+      linear_bp = conv_8xBit8u_to_Bit64u(buf);
     }
     else
 #endif
@@ -1942,8 +1943,9 @@ void bx_dbg_bt_command(unsigned dist)
 }
 
 void bx_dbg_print_watchpoints(void)
-{ unsigned i;
+{
   Bit8u buf[2];
+  unsigned i;
 
   // print watch point info
   for (i = 0; i < num_read_watchpoints; i++) {
@@ -1998,7 +2000,8 @@ void bx_dbg_unwatch_all()
 }
 
 void bx_dbg_unwatch(bx_phy_address address)
-{ unsigned i;
+{
+  unsigned i;
   for (i=0; i<num_read_watchpoints; i++) {
     if (read_watchpoint[i].addr == address) {
       dbg_printf("read watchpoint at 0x" FMT_PHY_ADDRX " removed\n", address);
@@ -2024,8 +2027,13 @@ void bx_dbg_unwatch(bx_phy_address address)
   }
 }
 
-void bx_dbg_continue_command(void)
+void bx_dbg_continue_command(bx_bool expression)
 {
+  if (! expression) {
+    dbg_printf("continue condition is FALSE\n");
+    return;
+  }
+
   // continue executing, until a guard found
 
 one_more:
@@ -2319,312 +2327,6 @@ void bx_dbg_set_icount_guard(int which_cpu, Bit32u n)
   BX_CPU(which_cpu)->guard_found.guard_found = 0;
 }
 
-void bx_dbg_breakpoint_changed(void)
-{
-#if (BX_DBG_MAX_VIR_BPOINTS > 0)
-  if (bx_guard.iaddr.num_virtual)
-    bx_guard.guard_for |= BX_DBG_GUARD_IADDR_VIR;
-  else
-    bx_guard.guard_for &= ~BX_DBG_GUARD_IADDR_VIR;
-#endif
-
-#if (BX_DBG_MAX_LIN_BPOINTS > 0)
-  if (bx_guard.iaddr.num_linear)
-    bx_guard.guard_for |= BX_DBG_GUARD_IADDR_LIN;
-  else
-    bx_guard.guard_for &= ~BX_DBG_GUARD_IADDR_LIN;
-#endif
-
-#if (BX_DBG_MAX_PHY_BPOINTS > 0)
-  if (bx_guard.iaddr.num_physical)
-    bx_guard.guard_for |= BX_DBG_GUARD_IADDR_PHY;
-  else
-    bx_guard.guard_for &= ~BX_DBG_GUARD_IADDR_PHY;
-#endif
-}
-
-void bx_dbg_en_dis_breakpoint_command(unsigned handle, bx_bool enable)
-{
-#if (BX_DBG_MAX_VIR_BPOINTS > 0)
-  if (bx_dbg_en_dis_vbreak(handle, enable))
-    goto done;
-#endif
-
-#if (BX_DBG_MAX_LIN_BPOINTS > 0)
-  if (bx_dbg_en_dis_lbreak(handle, enable))
-    goto done;
-#endif
-
-#if (BX_DBG_MAX_PHY_BPOINTS > 0)
-  if (bx_dbg_en_dis_pbreak(handle, enable))
-    goto done;
-#endif
-
-  dbg_printf("Error: breakpoint %u not found.\n", handle);
-  return;
-
-done:
-  bx_dbg_breakpoint_changed();
-}
-
-bx_bool bx_dbg_en_dis_pbreak(unsigned handle, bx_bool enable)
-{
-#if (BX_DBG_MAX_PHY_BPOINTS > 0)
-  // see if breakpoint is a physical breakpoint
-  for (unsigned i=0; i<bx_guard.iaddr.num_physical; i++) {
-    if (bx_guard.iaddr.phy[i].bpoint_id == handle) {
-      bx_guard.iaddr.phy[i].enabled=enable;
-      return 1;
-    }
-  }
-#endif
-  return 0;
-}
-
-bx_bool bx_dbg_en_dis_lbreak(unsigned handle, bx_bool enable)
-{
-#if (BX_DBG_MAX_LIN_BPOINTS > 0)
-  // see if breakpoint is a linear breakpoint
-  for (unsigned i=0; i<bx_guard.iaddr.num_linear; i++) {
-    if (bx_guard.iaddr.lin[i].bpoint_id == handle) {
-      bx_guard.iaddr.lin[i].enabled=enable;
-      return 1;
-    }
-  }
-#endif
-  return 0;
-}
-
-bx_bool bx_dbg_en_dis_vbreak(unsigned handle, bx_bool enable)
-{
-#if (BX_DBG_MAX_VIR_BPOINTS > 0)
-  // see if breakpoint is a virtual breakpoint
-  for (unsigned i=0; i<bx_guard.iaddr.num_virtual; i++) {
-    if (bx_guard.iaddr.vir[i].bpoint_id == handle) {
-      bx_guard.iaddr.vir[i].enabled=enable;
-      return 1;
-    }
-  }
-#endif
-  return 0;
-}
-
-void bx_dbg_del_breakpoint_command(unsigned handle)
-{
-#if (BX_DBG_MAX_VIR_BPOINTS > 0)
-  if (bx_dbg_del_vbreak(handle))
-   goto done;
-#endif
-
-#if (BX_DBG_MAX_LIN_BPOINTS > 0)
-  if (bx_dbg_del_lbreak(handle))
-   goto done;
-#endif
-
-#if (BX_DBG_MAX_PHY_BPOINTS > 0)
-  if (bx_dbg_del_pbreak(handle))
-   goto done;
-#endif
-
-  dbg_printf("Error: breakpoint %u not found.\n", handle);
-  return;
-
-done:
-  bx_dbg_breakpoint_changed();
-}
-
-bx_bool bx_dbg_del_pbreak(unsigned handle)
-{
-#if (BX_DBG_MAX_PHY_BPOINTS > 0)
-  // see if breakpoint is a physical breakpoint
-  for (int i=0; i<(int)bx_guard.iaddr.num_physical; i++) {
-    if (bx_guard.iaddr.phy[i].bpoint_id == handle) {
-      // found breakpoint, delete it by shifting remaining entries left
-      for (int j=i; j<(int)(bx_guard.iaddr.num_physical-1); j++) {
-        bx_guard.iaddr.phy[j] = bx_guard.iaddr.phy[j+1];
-      }
-      bx_guard.iaddr.num_physical--;
-      return 1;
-    }
-  }
-#endif
-  return 0;
-}
-
-bx_bool bx_dbg_del_lbreak(unsigned handle)
-{
-#if (BX_DBG_MAX_LIN_BPOINTS > 0)
-  // see if breakpoint is a linear breakpoint
-  for (int i=0; i<(int)bx_guard.iaddr.num_linear; i++) {
-    if (bx_guard.iaddr.lin[i].bpoint_id == handle) {
-      // found breakpoint, delete it by shifting remaining entries left
-      for (int j=i; j<(int)(bx_guard.iaddr.num_linear-1); j++) {
-        bx_guard.iaddr.lin[j] = bx_guard.iaddr.lin[j+1];
-      }
-      bx_guard.iaddr.num_linear--;
-      return 1;
-    }
-  }
-#endif
-  return 0;
-}
-
-bx_bool bx_dbg_del_vbreak(unsigned handle)
-{
-#if (BX_DBG_MAX_VIR_BPOINTS > 0)
-  // see if breakpoint is a virtual breakpoint
-  for (int i=0; i<(int)bx_guard.iaddr.num_virtual; i++) {
-    if (bx_guard.iaddr.vir[i].bpoint_id == handle) {
-      // found breakpoint, delete it by shifting remaining entries left
-      for (int j=i; j<(int)(bx_guard.iaddr.num_virtual-1); j++) {
-        bx_guard.iaddr.vir[j] = bx_guard.iaddr.vir[j+1];
-      }
-      bx_guard.iaddr.num_virtual--;
-      return 1;
-    }
-  }
-#endif
-  return 0;
-}
-
-int bx_dbg_vbreakpoint_command(BreakpointKind bk, Bit32u cs, bx_address eip)
-{
-#if (BX_DBG_MAX_VIR_BPOINTS > 0)
-  if (bk != bkRegular) {
-    dbg_printf("Error: vbreak of this kind not implemented yet.\n");
-    return -1;
-  }
-
-  if (bx_guard.iaddr.num_virtual >= BX_DBG_MAX_VIR_BPOINTS) {
-    dbg_printf("Error: no more virtual breakpoint slots left.\n");
-    dbg_printf("Error: see BX_DBG_MAX_VIR_BPOINTS.\n");
-    return -1;
-  }
-
-  bx_guard.iaddr.vir[bx_guard.iaddr.num_virtual].cs  = cs;
-  bx_guard.iaddr.vir[bx_guard.iaddr.num_virtual].eip = eip;
-  bx_guard.iaddr.vir[bx_guard.iaddr.num_virtual].bpoint_id = bx_debugger.next_bpoint_id++;
-  int BpId = (int)bx_guard.iaddr.vir[bx_guard.iaddr.num_virtual].bpoint_id;
-  bx_guard.iaddr.vir[bx_guard.iaddr.num_virtual].enabled=1;
-  bx_guard.iaddr.num_virtual++;
-  bx_guard.guard_for |= BX_DBG_GUARD_IADDR_VIR;
-  return BpId;
-
-#else
-  dbg_printf("Error: virtual breakpoint support not compiled in.\n");
-  dbg_printf("Error: make sure BX_DBG_MAX_VIR_BPOINTS > 0\n");
-  return -1;
-#endif
-}
-
-int bx_dbg_lbreakpoint_command(BreakpointKind bk, bx_address laddress)
-{
-#if (BX_DBG_MAX_LIN_BPOINTS > 0)
-  if (bk == bkAtIP) {
-    dbg_printf("Error: lbreak of this kind not implemented yet.\n");
-    return -1;
-  }
-
-  if (bx_guard.iaddr.num_linear >= BX_DBG_MAX_LIN_BPOINTS) {
-    dbg_printf("Error: no more linear breakpoint slots left.\n");
-    dbg_printf("Error: see BX_DBG_MAX_LIN_BPOINTS.\n");
-    return -1;
-  }
-
-  bx_guard.iaddr.lin[bx_guard.iaddr.num_linear].addr = laddress;
-  int BpId = (bk == bkStepOver) ? 0 : bx_debugger.next_bpoint_id++;
-  bx_guard.iaddr.lin[bx_guard.iaddr.num_linear].bpoint_id = BpId;
-  bx_guard.iaddr.lin[bx_guard.iaddr.num_linear].enabled=1;
-  bx_guard.iaddr.num_linear++;
-  bx_guard.guard_for |= BX_DBG_GUARD_IADDR_LIN;
-  return BpId;
-
-#else
-  dbg_printf("Error: linear breakpoint support not compiled in.\n");
-  dbg_printf("Error: make sure BX_DBG_MAX_LIN_BPOINTS > 0\n");
-  return -1;
-#endif
-}
-
-int bx_dbg_pbreakpoint_command(BreakpointKind bk, bx_phy_address paddress)
-{
-#if (BX_DBG_MAX_PHY_BPOINTS > 0)
-  if (bk != bkRegular) {
-    dbg_printf("Error: pbreak of this kind not implemented yet.\n");
-    return -1;
-  }
-
-  if (bx_guard.iaddr.num_physical >= BX_DBG_MAX_PHY_BPOINTS) {
-    dbg_printf("Error: no more physical breakpoint slots left.\n");
-    dbg_printf("Error: see BX_DBG_MAX_PHY_BPOINTS.\n");
-    return -1;
-  }
-
-  bx_guard.iaddr.phy[bx_guard.iaddr.num_physical].addr = paddress;
-  bx_guard.iaddr.phy[bx_guard.iaddr.num_physical].bpoint_id = bx_debugger.next_bpoint_id++;
-  int BpId = (int)bx_guard.iaddr.phy[bx_guard.iaddr.num_physical].bpoint_id;
-  bx_guard.iaddr.phy[bx_guard.iaddr.num_physical].enabled=1;
-  bx_guard.iaddr.num_physical++;
-  bx_guard.guard_for |= BX_DBG_GUARD_IADDR_PHY;
-  return BpId;
-#else
-  dbg_printf("Error: physical breakpoint support not compiled in.\n");
-  dbg_printf("Error: make sure BX_DBG_MAX_PHY_BPOINTS > 0\n");
-  return -1;
-#endif
-}
-
-void bx_dbg_info_bpoints_command(void)
-{
-  unsigned i;
-// Num Type           Disp Enb Address    What
-// 1   breakpoint     keep y   0x00010664 in main at temp.c:7
-
-  const char *sym;
-
-  dbg_printf("Num Type           Disp Enb Sym\n");
-#if (BX_DBG_MAX_VIR_BPOINTS > 0)
-  for (i=0; i<bx_guard.iaddr.num_virtual; i++) {
-    dbg_printf("%3u ", bx_guard.iaddr.vir[i].bpoint_id);
-    dbg_printf("vbreakpoint    ");
-    dbg_printf("keep ");
-    dbg_printf(bx_guard.iaddr.vir[i].enabled?"y   ":"n   ");
-    dbg_printf("0x%04x:" FMT_ADDRX " ",
-                  bx_guard.iaddr.vir[i].cs,
-                  bx_guard.iaddr.vir[i].eip);
-    sym = bx_dbg_disasm_symbolic_address(bx_guard.iaddr.vir[i].eip, 0);
-    sym = sym ? sym : "<unknown>";
-    dbg_printf("(%s)\n", sym);
-  }
-#endif
-
-#if (BX_DBG_MAX_LIN_BPOINTS > 0)
-  for (i=0; i<bx_guard.iaddr.num_linear; i++) {
-    dbg_printf("%3u ", bx_guard.iaddr.lin[i].bpoint_id);
-    dbg_printf("lbreakpoint    ");
-    dbg_printf("keep ");
-    dbg_printf(bx_guard.iaddr.lin[i].enabled?"y   ":"n   ");
-    dbg_printf("0x" FMT_ADDRX " ", bx_guard.iaddr.lin[i].addr);
-    sym = bx_dbg_disasm_symbolic_address(bx_guard.iaddr.lin[i].addr, 0);
-    sym = sym ? sym : "<unknown>";
-    dbg_printf("(%s)\n", sym);
-  }
-#endif
-
-#if (BX_DBG_MAX_PHY_BPOINTS > 0)
-  for (i=0; i<bx_guard.iaddr.num_physical; i++) {
-    dbg_printf("%3u ", bx_guard.iaddr.phy[i].bpoint_id);
-    dbg_printf("pbreakpoint    ");
-    dbg_printf("keep ");
-    dbg_printf(bx_guard.iaddr.phy[i].enabled?"y   ":"n   ");
-    dbg_printf("0x" FMT_PHY_ADDRX " ", bx_guard.iaddr.phy[i].addr);
-    sym = bx_dbg_disasm_symbolic_address(bx_guard.iaddr.phy[i].addr, 0);
-    sym = sym ? sym : "<unknown>";
-    dbg_printf("(%s)\n", sym);
-  }
-#endif
-}
-
 void bx_dbg_set_auto_disassemble(bx_bool enable)
 {
   bx_debugger.auto_disassemble = enable;
@@ -2808,11 +2510,6 @@ void bx_dbg_examine_command(const char *command, const char *format, bx_bool for
     return;
   }
 
-  //if (unit_size == 'g') {
-  //  dbg_printf("error: dbg_examine: 'g' (8-byte) unit size not supported.\n");
-  //  return;
-  //}
-
   if (format_passed) {
     // store current options as default
     bx_debugger.default_display_format = display_format;
@@ -2830,7 +2527,7 @@ void bx_dbg_examine_command(const char *command, const char *format, bx_bool for
       data_size = 1;
       per_line = 64;
     }
-    else
+    else {
       switch (unit_size) {
         case 'b': data_size = 1; per_line = 16; break;
         case 'h': data_size = 2; per_line = 8; break;
@@ -2840,6 +2537,7 @@ void bx_dbg_examine_command(const char *command, const char *format, bx_bool for
       // binary format is quite large
       if (display_format == 't')
         per_line /= 4;
+    }
   }
   else {
     switch (unit_size) {
@@ -4180,9 +3878,19 @@ void bx_dbg_print_help(void)
   dbg_printf("    show \"param\", restore\n");
 }
 
+extern "C" Bit64u eval_value;
+
 void bx_dbg_calc_command(Bit64u value)
 {
-  dbg_printf("0x" FMT_LL "x " FMT_LL "d\n", value, value);
+  assert(value == eval_value);
+  dbg_printf("0x" FMT_LL "x " FMT_LL "d\n", eval_value, eval_value);
+}
+
+bx_bool bx_dbg_eval_condition(char *condition)
+{
+  extern Bit64u eval_value;
+  bx_dbg_interpret_line(condition);
+  return eval_value != 0;
 }
 
 Bit8u bx_dbg_get_reg8l_value(unsigned reg)
@@ -4555,13 +4263,13 @@ void bx_dbg_step_over_command()
   }
 
   // calls, ints, loops and so on
-  int BpId = bx_dbg_lbreakpoint_command(bkStepOver, laddr + insn.ilen);
+  int BpId = bx_dbg_lbreakpoint_command(bkStepOver, laddr + insn.ilen, NULL);
   if (BpId == -1) {
     dbg_printf("bx_dbg_step_over_command:: Failed to set lbreakpoint !\n");
     return;
   }
 
-  bx_dbg_continue_command();
+  bx_dbg_continue_command(1);
 
   if (bx_dbg_del_lbreak(BpId))
     bx_dbg_breakpoint_changed();

@@ -6,7 +6,7 @@
 //
 //  Copyright (c) 2006 CodeSourcery.
 //  Written by Paul Brook
-//  Copyright (C) 2009-2016  The Bochs Project
+//  Copyright (C) 2009-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -38,6 +38,31 @@
 #include "usb_msd.h"
 
 #define LOG_THIS
+
+// USB device plugin entry points
+
+int CDECL libusb_msd_dev_plugin_init(plugin_t *plugin, plugintype_t type)
+{
+  return 0; // Success
+}
+
+void CDECL libusb_msd_dev_plugin_fini(void)
+{
+  // Nothing here yet
+}
+
+//
+// Define the static class that registers the derived USB device class,
+// and allocates one on request.
+//
+class bx_usb_msd_locator_c : public usbdev_locator_c {
+public:
+  bx_usb_msd_locator_c(void) : usbdev_locator_c("usb_msd") {}
+protected:
+  usb_device_c *allocate(usbdev_type devtype, const char *args) {
+    return (new usb_msd_device_c(devtype, args));
+  }
+} bx_usb_msd_match;
 
 enum USBMSDMode {
   USB_MSDM_CBW,
@@ -553,7 +578,7 @@ int usb_msd_device_c::handle_control(int request, int value, int index, int leng
         case USB_DT_DEVICE_QUALIFIER:
           BX_DEBUG(("USB_REQ_GET_DESCRIPTOR: Device Qualifier"));
           // device qualifier
-          if (d.speed >= USB_SPEED_HIGH) {
+          if (d.speed == USB_SPEED_HIGH) {
             data[0] = 10;
             data[1] = USB_DT_DEVICE_QUALIFIER;
             memcpy(data+2, bx_msd_dev_descriptor+2, 6);
@@ -561,8 +586,8 @@ int usb_msd_device_c::handle_control(int request, int value, int index, int leng
             data[9] = 0;
             ret = 10;
           } else {
-            // a low- or full-speed only device (i.e.: a non high-speed device) must return
-            //  request error on this function
+            // a low-, full- or super-speed device (i.e.: a non high-speed device)
+            // must return request error on this function
             BX_ERROR(("USB MSD handle_control: full-speed only device returning stall on Device Qualifier."));
             goto fail;
           }

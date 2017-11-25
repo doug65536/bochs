@@ -59,6 +59,9 @@
 #include "rfb.h"
 #include "rfbkeys.h"
 
+#include "bxthread.h"
+
+
 class bx_vncsrv_gui_c: public bx_gui_c {
 public:
   bx_vncsrv_gui_c(void) : screen(NULL) {}
@@ -100,7 +103,6 @@ IMPLEMENT_GUI_PLUGIN_CODE(vncsrv)
 #else
 #include <errno.h>
 #endif
-#include <pthread.h>
 
 #endif
 
@@ -1131,9 +1133,9 @@ BX_THREAD_FUNC(vncServerThreadInit, indata)
 
 void vncStartThread()
 {
-  BX_THREAD_ID(threadID);
+  BX_THREAD_VAR(thread_var);
 
-  BX_THREAD_CREATE(vncServerThreadInit, NULL, threadID);
+  BX_THREAD_CREATE(vncServerThreadInit, NULL, thread_var);
 }
 
 void DrawBitmap(int x, int y, int width, int height, char *bmap,

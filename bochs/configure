@@ -817,6 +817,7 @@ CFP
 CXXFP
 SLASH
 DASH
+NONPLUGIN_GUI_LINK_OPTS
 GUI_LINK_OPTS_WX
 GUI_LINK_OPTS_TERM
 GUI_LINK_OPTS
@@ -874,10 +875,6 @@ NETLOW_OBJS
 NETDEV_OBJS
 NETWORK_LIB_VAR
 USBHC_DLL_TARGETS
-SCSI_OBJS
-USBDEV_OBJS
-USBCORE_OBJ
-UHCICORE_OBJ
 USBHC_OBJS
 USB_LIB_VAR
 CLEAN_PCIDEV_VAR
@@ -905,7 +902,6 @@ CPP_SUFFIX
 SUFFIX_LINE
 BX_LARGE_RAMFILE
 OBJS64
-NONPLUGIN_GUI_LINK_OPTS
 DEFINE_PLUGIN_PATH
 BX_USE_IDLE_HACK
 X_EXTRA_LIBS
@@ -5203,7 +5199,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 5206 "configure"' > conftest.$ac_ext
+  echo '#line 5202 "configure"' > conftest.$ac_ext
   if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -6891,11 +6887,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:6894: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:6890: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:6898: \$? = $ac_status" >&5
+   echo "$as_me:6894: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -7124,11 +7120,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7127: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7123: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7131: \$? = $ac_status" >&5
+   echo "$as_me:7127: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -7191,11 +7187,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7194: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7190: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:7198: \$? = $ac_status" >&5
+   echo "$as_me:7194: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -8981,7 +8977,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 8984 "configure"
+#line 8980 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -9079,7 +9075,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 9082 "configure"
+#line 9078 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -11194,11 +11190,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:11197: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:11193: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:11201: \$? = $ac_status" >&5
+   echo "$as_me:11197: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -11261,11 +11257,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:11264: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:11260: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:11268: \$? = $ac_status" >&5
+   echo "$as_me:11264: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -12286,7 +12282,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 12289 "configure"
+#line 12285 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -12384,7 +12380,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 12387 "configure"
+#line 12383 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -13207,11 +13203,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:13210: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:13206: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:13214: \$? = $ac_status" >&5
+   echo "$as_me:13210: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -13274,11 +13270,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:13277: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:13273: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:13281: \$? = $ac_status" >&5
+   echo "$as_me:13277: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -15239,11 +15235,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:15242: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15238: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:15246: \$? = $ac_status" >&5
+   echo "$as_me:15242: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -15472,11 +15468,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:15475: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15471: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:15479: \$? = $ac_status" >&5
+   echo "$as_me:15475: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -15539,11 +15535,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:15542: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:15538: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:15546: \$? = $ac_status" >&5
+   echo "$as_me:15542: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -17329,7 +17325,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 17332 "configure"
+#line 17328 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -17427,7 +17423,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 17430 "configure"
+#line 17426 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -19114,7 +19110,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 19117 "configure"
+#line 19113 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -21339,29 +21335,6 @@ fi
     fi
   fi
 
-  if test "$with_macos" != yes; then
-    can_compile_macos=1
-    ac_fn_c_check_header_mongrel "$LINENO" "Quickdraw.h" "ac_cv_header_Quickdraw_h" "$ac_includes_default"
-if test "x$ac_cv_header_Quickdraw_h" = xyes; then :
-
-else
-   can_compile_macos=0
-fi
-
-
-    ac_fn_c_check_header_mongrel "$LINENO" "Dialogs.h" "ac_cv_header_Dialogs_h" "$ac_includes_default"
-if test "x$ac_cv_header_Dialogs_h" = xyes; then :
-
-else
-   can_compile_macos=0
-fi
-
-
-    if test $can_compile_macos = 1; then
-      with_macos=yes
-    fi
-  fi
-
   if test "$with_carbon" != yes; then
     can_compile_carbon=1
     ac_fn_c_check_header_mongrel "$LINENO" "Carbon.h" "ac_cv_header_Carbon_h" "$ac_includes_default"
@@ -21449,29 +21422,6 @@ fi
       fi
     else
       with_sdl2=yes
-    fi
-  fi
-
-  if test "$with_svga" != yes; then
-    can_compile_svga=1
-    ac_fn_c_check_header_mongrel "$LINENO" "vga.h" "ac_cv_header_vga_h" "$ac_includes_default"
-if test "x$ac_cv_header_vga_h" = xyes; then :
-
-else
-   can_compile_svga=0
-fi
-
-
-    ac_fn_c_check_header_mongrel "$LINENO" "vgagl.h" "ac_cv_header_vgagl_h" "$ac_includes_default"
-if test "x$ac_cv_header_vgagl_h" = xyes; then :
-
-else
-   can_compile_svga=0
-fi
-
-
-    if test $can_compile_svga = 1; then
-      with_svga=yes
     fi
   fi
 
@@ -21767,7 +21717,6 @@ $as_echo "no" >&6; }
   GUI_PLUGIN_OBJS=''
   NONPLUGIN_GUI_LINK_OPTS='$(GUI_LINK_OPTS)'
 fi
-
 
 
 # copy gui variables into iodev variables.  Later, we will add to the gui
@@ -23280,6 +23229,7 @@ fi
 
 
 
+PCI_OBJS=''
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for i440FX PCI support" >&5
 $as_echo_n "checking for i440FX PCI support... " >&6; }
 # Check whether --enable-pci was given.
@@ -23290,14 +23240,12 @@ $as_echo "yes" >&6; }
     $as_echo "#define BX_SUPPORT_PCI 1" >>confdefs.h
 
     pci=1
-    PCI_OBJS='pci.o pci2isa.o pci_ide.o acpi.o'
    else
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
     $as_echo "#define BX_SUPPORT_PCI 0" >>confdefs.h
 
     pci=0
-    PCI_OBJS=''
    fi
 else
 
@@ -23306,11 +23254,13 @@ $as_echo "yes" >&6; }
     $as_echo "#define BX_SUPPORT_PCI 1" >>confdefs.h
 
     pci=1
-    PCI_OBJS='pci.o pci2isa.o pci_ide.o acpi.o'
 
 
 fi
 
+if test "$pci" = "1"; then
+  PCI_OBJS='pci.o pci2isa.o pci_ide.o acpi.o hpet.o'
+fi
 
 
 
@@ -23510,18 +23460,9 @@ if test "$use_usb" = 1; then
   if test "$pci" != "1"; then
     as_fn_error $? "USB requires PCI support" "$LINENO" 5
   fi
-  USBCORE_OBJ="usb_common.o"
-  USBDEV_OBJS="usb_hid.o usb_hub.o usb_msd.o usb_printer.o usb_cbi.o"
-  SCSI_OBJS="scsi_device.o"
-  if test "$bx_plugins" = 0; then
-    USB_LIB_VAR='iodev/usb/libusb.a'
+  USB_LIB_VAR='iodev/usb/libusb.a'
 
-  fi
 fi
-
-
-
-
 
 
 
@@ -24511,12 +24452,16 @@ ok_wx_version=0
 wx_multi_lib=0
 needs_gtk2=0
 wx_needs_gdk2=0
+wx_msw_unicode=0
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for wxWidgets library version" >&5
 $as_echo_n "checking for wxWidgets library version... " >&6; }
 if test x$WX_CONFIG != xnot_found; then
   WX_VERSION=`$WX_CONFIG --version`
   WX_BASENAME=`$WX_CONFIG --basename`
 
+  if test "$WX_BASENAME" = wx_mswu; then
+    wx_msw_unicode=1
+  fi
   # test that version >= 2.3.2.  Anybody have a better way to do this? Yuck.
   case x$WX_VERSION in
     x2.[012]*) ;; # less than version 2.3.x
@@ -24531,13 +24476,24 @@ if test x$WX_CONFIG != xnot_found; then
         *) ;;
       esac
       ;;
-    x[3-9]*) ok_wx_version=1 ;;  # version 3 or greater
+    x3*)  # version 3
+      ok_wx_version=1
+      wx_multi_lib=1
+      case x$WX_BASENAME in
+        xwx_gtk2|xwx_gtk2u) wx_needs_gdk2=1 ;;
+        *) ;;
+      esac
+      ;;
     *) ;; # who knows?
   esac
 
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $WX_VERSION" >&5
 $as_echo "$WX_VERSION" >&6; }
+if test $wx_msw_unicode = 1; then
+  $as_echo "#define WX_MSW_UNICODE 1" >>confdefs.h
+
+fi
 if test "$cross_configure" = 0; then
   if test "$ok_wx_version" = 1; then
     # detected a usable version
@@ -24646,6 +24602,10 @@ if test "$with_sdl" = yes; then
   GUI_CXXFLAGS="$GUI_CXXFLAGS $SDL_CFLAGS"
   GUI_LINK_OPTS_SDL="`sdl-config --libs`"
   GUI_LINK_OPTS="$GUI_LINK_OPTS \$(GUI_LINK_OPTS_SDL)"
+  # The plugin version uses multi-threading support in Bochs core
+  if test "$bx_plugins" = 1; then
+    NONPLUGIN_GUI_LINK_OPTS="`sdl-config --libs`"
+  fi
   # The enhanced X debugger depends on GTK2
   if test "$gui_debugger" = 1 -a "$DEFAULT_GUI" != win32; then
     needs_gtk2=1
@@ -24678,6 +24638,10 @@ if test "$with_sdl2" = yes; then
   GUI_CXXFLAGS="$GUI_CXXFLAGS $SDL2_CFLAGS"
   GUI_LINK_OPTS_SDL2="`sdl2-config --libs`"
   GUI_LINK_OPTS="$GUI_LINK_OPTS \$(GUI_LINK_OPTS_SDL2)"
+  # The plugin version uses multi-threading support in Bochs core
+  if test "$bx_plugins" = 1; then
+    NONPLUGIN_GUI_LINK_OPTS="`sdl2-config --libs`"
+  fi
   # The enhanced X debugger depends on GTK2
   if test "$gui_debugger" = 1 -a "$DEFAULT_GUI" != win32; then
     needs_gtk2=1
@@ -25208,7 +25172,7 @@ case $target in
       IODEV_DLL_TARGETS=""
       IODEV_DLL_LIST="biosdev cmos dma extfpuirq harddrv ioapic parallel pic speaker unmapped"
       if test "$pci" = "1"; then
-        IODEV_DLL_LIST="$IODEV_DLL_LIST acpi pci pci2isa pci_ide"
+        IODEV_DLL_LIST="$IODEV_DLL_LIST acpi pci pci2isa pci_ide hpet"
       fi
       if test "$bx_debugger" = 1; then
         IODEV_DLL_LIST="$IODEV_DLL_LIST iodebug"
@@ -25900,6 +25864,7 @@ if test ! -d build; then mkdir build; fi
 if test ! -d build/linux; then mkdir build/linux; fi
 if test ! -d build/win32; then mkdir build/win32; fi
 if test ! -d build/win32/nsis; then mkdir build/win32/nsis; fi
+
 
 
 

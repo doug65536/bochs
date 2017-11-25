@@ -99,6 +99,7 @@ public:
 
   void init_pci_conf(Bit16u vid, Bit16u did, Bit8u rev, Bit32u classc, Bit8u headt);
   void register_pci_state(bx_list_c *list);
+  void after_restore_pci_state(memory_handler_t mem_read_handler);
   void load_pci_rom(const char *path);
 
 protected:
@@ -127,9 +128,6 @@ public:
   }
   virtual void paste_bytes(Bit8u *data, Bit32s length) {
     STUBFUNC(keyboard, paste_bytes);
-  }
-  virtual void release_keys(void) {
-    STUBFUNC(keyboard, release_keys);
   }
 };
 
@@ -175,6 +173,16 @@ public:
   }
   virtual void checksum_cmos(void) {
     STUBFUNC(cmos, checksum);
+  }
+  virtual void enable_irq(bx_bool enabled) {
+    STUBFUNC(cmos, enable_irq);
+  }
+};
+
+class BOCHSAPI bx_pit_stub_c : public bx_devmodel_c {
+public:
+  virtual void enable_irq(bx_bool enabled) {
+    STUBFUNC(pit, enable_irq);
   }
 };
 
@@ -234,9 +242,9 @@ class BOCHSAPI bx_vga_stub_c
 #endif
 {
 public:
-  virtual void redraw_area(unsigned x0, unsigned y0,
-                           unsigned width, unsigned height) {
-    STUBFUNC(vga, redraw_area);
+  virtual void vga_redraw_area(unsigned x0, unsigned y0, unsigned width,
+                               unsigned height) {
+    STUBFUNC(vga, vga_redraw_area);
   }
   virtual Bit8u mem_read(bx_phy_address addr) {
     STUBFUNC(vga, mem_read);  return 0;
@@ -315,16 +323,6 @@ public:
 };
 #endif
 
-#if BX_SUPPORT_PCIUSB
-class BOCHSAPI bx_usb_devctl_stub_c : public bx_devmodel_c {
-public:
-  virtual int init_device(bx_list_c *portconf, logfunctions *hub, void **dev, bx_list_c *sr_list) {
-    STUBFUNC(usb_devctl, init_device); return 0;
-  }
-  virtual void usb_send_msg(void *dev, int msg) {}
-};
-#endif
-
 class BOCHSAPI bx_hdimage_ctl_stub_c : public bx_devmodel_c {
 public:
   virtual device_image_t* init_image(Bit8u image_mode, Bit64u disk_size, const char *journal) {
@@ -386,6 +384,7 @@ public:
   void register_removable_mouse(void *dev, bx_mouse_enq_t mouse_enq, bx_mouse_enabled_changed_t mouse_enabled_changed);
   void unregister_removable_mouse(void *dev);
   void gen_scancode(Bit32u key);
+  void release_keys(void);
   void mouse_enabled_changed(bx_bool enabled);
   void mouse_motion(int delta_x, int delta_y, int delta_z, unsigned button_state, bx_bool absxy);
 
@@ -410,6 +409,7 @@ public:
   bx_hdimage_ctl_stub_c *pluginHDImageCtl;
   bx_keyb_stub_c    *pluginKeyboard;
   bx_pic_stub_c     *pluginPicDevice;
+  bx_pit_stub_c     *pluginPitDevice;
   bx_speaker_stub_c *pluginSpeaker;
   bx_vga_stub_c     *pluginVgaDevice;
 #if BX_SUPPORT_IODEBUG
@@ -426,9 +426,6 @@ public:
   bx_pci_ide_stub_c *pluginPciIdeController;
   bx_acpi_ctrl_stub_c *pluginACPIController;
 #endif
-#if BX_SUPPORT_PCIUSB
-  bx_usb_devctl_stub_c  *pluginUsbDevCtl;
-#endif
 
   // stub classes that the pointers (above) can point to until a plugin is
   // loaded
@@ -439,6 +436,7 @@ public:
   bx_hdimage_ctl_stub_c stubHDImage;
   bx_keyb_stub_c stubKeyboard;
   bx_pic_stub_c  stubPic;
+  bx_pit_stub_c  stubPit;
   bx_speaker_stub_c stubSpeaker;
   bx_vga_stub_c  stubVga;
 #if BX_SUPPORT_IODEBUG
@@ -454,9 +452,6 @@ public:
   bx_pci2isa_stub_c stubPci2Isa;
   bx_pci_ide_stub_c stubPciIde;
   bx_acpi_ctrl_stub_c stubACPIController;
-#endif
-#if BX_SUPPORT_PCIUSB
-  bx_usb_devctl_stub_c stubUsbDevCtl;
 #endif
 
   // Some info to pass to devices which can handled bulk IO.  This allows
@@ -508,6 +503,7 @@ private:
   struct {
     void *dev;
     bx_kbd_gen_scancode_t gen_scancode;
+    bx_bool bxkey_state[BX_KEY_NBKEYS];
   } bx_keyboard;
 
   struct {

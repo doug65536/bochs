@@ -26,7 +26,9 @@
 #include "cpu.h"
 #define LOG_THIS BX_CPU_THIS_PTR
 
-#define XSAVEC_COMPACTION_ENABLED BX_CONST64(0x8000000000000000)
+#include "decoder/ia_opcodes.h"
+
+const Bit64u XSAVEC_COMPACTION_ENABLED = BX_CONST64(0x8000000000000000);
 
 /* 0F AE /4 */
 BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::XSAVE(bxInstruction_c *i)
@@ -189,7 +191,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::XSAVEC(bxInstruction_c *i)
       VMCS_CACHE *vm = &BX_CPU_THIS_PTR vmcs;
       Bit64u requested_features = (((Bit64u) EDX) << 32) | EAX;
       if (requested_features & BX_CPU_THIS_PTR msr.msr_xss & vm->xss_exiting_bitmap)
-        VMexit(VMX_VMEXIT_XSAVES, 0);
+        VMexit_Instruction(i, VMX_VMEXIT_XSAVES);
     }
 #endif
   }
@@ -325,7 +327,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::XRSTOR(bxInstruction_c *i)
       VMCS_CACHE *vm = &BX_CPU_THIS_PTR vmcs;
       Bit64u requested_features = (((Bit64u) EDX) << 32) | EAX;
       if (requested_features & BX_CPU_THIS_PTR msr.msr_xss & vm->xss_exiting_bitmap)
-        VMexit(VMX_VMEXIT_XRSTORS, 0);
+        VMexit_Instruction(i, VMX_VMEXIT_XRSTORS);
     }
 #endif
   }

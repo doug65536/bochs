@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2009-2015  Benjamin D Lunt (fys [at] fysnet [dot] net)
+//  Copyright (C) 2009-2017  Benjamin D Lunt (fys [at] fysnet [dot] net)
 //                2009-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
@@ -390,7 +390,7 @@ void bx_uhci_core_c::write(Bit32u address, Bit32u value, unsigned io_len)
         for (unsigned i=0; i<USB_UHCI_PORTS; i++) {
           if (hub.usb_port[i].status) {
             if (hub.usb_port[i].device != NULL) {
-              DEV_usb_send_msg(hub.usb_port[i].device, USB_MSG_RESET);
+              hub.usb_port[i].device->usb_send_msg(USB_MSG_RESET);
             }
             hub.usb_port[i].connect_changed = 1;
             if (hub.usb_port[i].enabled) {
@@ -539,7 +539,7 @@ void bx_uhci_core_c::write(Bit32u address, Bit32u value, unsigned io_len)
               hub.usb_port[port].low_speed =
                 (hub.usb_port[port].device->get_speed() == USB_SPEED_LOW);
               set_connect_status(port, hub.usb_port[port].device->get_type(), 1);
-              DEV_usb_send_msg(hub.usb_port[port].device, USB_MSG_RESET);
+              hub.usb_port[port].device->usb_send_msg(USB_MSG_RESET);
             }
           }
           BX_INFO(("Port%d: Reset", port+1));
@@ -649,10 +649,10 @@ void bx_uhci_core_c::uhci_timer(void)
           bx_bool depthbreadth = (td.dword0 & 0x0004) ? 1 : 0;     // 1 = depth first, 0 = breadth first
           stack[stk].q = (td.dword0 & 0x0002) ? 1 : 0;
           stack[stk].t = (td.dword0 & 0x0001) ? 1 : 0;
-          if (td.dword1 & (1<<24)) interrupt = 1;
           if (td.dword1 & (1<<23)) {  // is it an active TD
             BX_DEBUG(("Frame: %04i (0x%04X)", hub.usb_frame_num.frame_num, hub.usb_frame_num.frame_num));
             if (DoTransfer(address, queue_num, &td)) {
+              if (td.dword1 & (1<<24)) interrupt = 1;
               // issue short packet?
               Bit16u r_actlen = (((td.dword1 & 0x7FF)+1) & 0x7FF);
               Bit16u r_maxlen = (((td.dword2>>21)+1) & 0x7FF);
@@ -779,14 +779,14 @@ bx_bool bx_uhci_core_c::DoTransfer(Bit32u address, Bit32u queue_num, struct TD *
   Bit8u  endpt  = (td->dword2 >> 15) & 0x0F;
   Bit8u  pid    =  td->dword2 & 0xFF;
 
-  BX_DEBUG(("QH%03i:TD found at address: 0x%08X", queue_num, address));
-  BX_DEBUG(("  %08X   %08X   %08X   %08X", td->dword0, td->dword1, td->dword2, td->dword3));
-
   p = find_async_packet(&packets, address);
   completion = (p != NULL);
   if (completion && !p->done) {
     return 0;
   }
+
+  BX_DEBUG(("QH%03i:TD found at address: 0x%08X", queue_num, address));
+  BX_DEBUG(("  %08X   %08X   %08X   %08X", td->dword0, td->dword1, td->dword2, td->dword3));
 
   // check TD to make sure it is valid
   // A max length 0x500 to 0x77E is illegal

@@ -24,6 +24,8 @@
 #include "cpu.h"
 #define LOG_THIS BX_CPU_THIS_PTR
 
+#include "decoder/ia_opcodes.h"
+
 BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::SHLD_EdGdM(bxInstruction_c *i)
 {
   unsigned count;
@@ -51,7 +53,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::SHLD_EdGdM(bxInstruction_c *i)
 
     cf = (op1_32 >> (32 - count)) & 0x1;
     of = cf ^ (result_32 >> 31); // of = cf ^ result31
-    SET_FLAGS_OxxxxC(of, cf);
+    BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(of, cf);
   }
 
   BX_NEXT_INSTR(i);
@@ -85,7 +87,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::SHLD_EdGdR(bxInstruction_c *i)
 
     cf = (op1_32 >> (32 - count)) & 0x1;
     of = cf ^ (result_32 >> 31); // of = cf ^ result31
-    SET_FLAGS_OxxxxC(of, cf);
+    BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(of, cf);
   }
 
   BX_NEXT_INSTR(i);
@@ -118,7 +120,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::SHRD_EdGdM(bxInstruction_c *i)
 
     cf = (op1_32 >> (count - 1)) & 0x1;
     of = ((result_32 << 1) ^ result_32) >> 31; // of = result30 ^ result31
-    SET_FLAGS_OxxxxC(of, cf);
+    BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(of, cf);
   }
 
   BX_NEXT_INSTR(i);
@@ -152,7 +154,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::SHRD_EdGdR(bxInstruction_c *i)
 
     cf = (op1_32 >> (count - 1)) & 0x1;
     of = ((result_32 << 1) ^ result_32) >> 31; // of = result30 ^ result31
-    SET_FLAGS_OxxxxC(of, cf);
+    BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(of, cf);
   }
 
   BX_NEXT_INSTR(i);
@@ -181,7 +183,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::ROL_EdM(bxInstruction_c *i)
     unsigned bit0  = (result_32 & 0x1);
     unsigned bit31 = (result_32 >> 31);
     // of = cf ^ result31
-    SET_FLAGS_OxxxxC(bit0 ^ bit31, bit0);
+    BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(bit0 ^ bit31, bit0);
   }
 
   BX_NEXT_INSTR(i);
@@ -211,7 +213,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::ROL_EdR(bxInstruction_c *i)
     bit0  = (result_32 & 0x1);
     bit31 = (result_32 >> 31);
     // of = cf ^ result31
-    SET_FLAGS_OxxxxC(bit0 ^ bit31, bit0);
+    BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(bit0 ^ bit31, bit0);
   }
 
   BX_NEXT_INSTR(i);
@@ -241,7 +243,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::ROR_EdM(bxInstruction_c *i)
     bit31 = (result_32 >> 31) & 1;
     bit30 = (result_32 >> 30) & 1;
     // of = result30 ^ result31
-    SET_FLAGS_OxxxxC(bit30 ^ bit31, bit31);
+    BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(bit30 ^ bit31, bit31);
   }
 
   BX_NEXT_INSTR(i);
@@ -271,7 +273,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::ROR_EdR(bxInstruction_c *i)
     bit31 = (result_32 >> 31) & 1;
     bit30 = (result_32 >> 30) & 1;
     // of = result30 ^ result31
-    SET_FLAGS_OxxxxC(bit30 ^ bit31, bit31);
+    BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(bit30 ^ bit31, bit31);
   }
 
   BX_NEXT_INSTR(i);
@@ -311,7 +313,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::RCL_EdM(bxInstruction_c *i)
 
   cf = (op1_32 >> (32 - count)) & 0x1;
   of = cf ^ (result_32 >> 31); // of = cf ^ result31
-  SET_FLAGS_OxxxxC(of, cf);
+  BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(of, cf);
 
   BX_NEXT_INSTR(i);
 }
@@ -349,7 +351,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::RCL_EdR(bxInstruction_c *i)
 
   cf = (op1_32 >> (32 - count)) & 0x1;
   of = cf ^ (result_32 >> 31); // of = cf ^ result31
-  SET_FLAGS_OxxxxC(of, cf);
+  BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(of, cf);
 
   BX_NEXT_INSTR(i);
 }
@@ -389,7 +391,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::RCR_EdM(bxInstruction_c *i)
 
   cf = (op1_32 >> (count - 1)) & 0x1;
   of = ((result_32 << 1) ^ result_32) >> 31; // of = result30 ^ result31
-  SET_FLAGS_OxxxxC(of, cf);
+  BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(of, cf);
 
   BX_NEXT_INSTR(i);
 }
@@ -428,7 +430,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::RCR_EdR(bxInstruction_c *i)
 
   cf = (op1_32 >> (count - 1)) & 0x1;
   of = ((result_32 << 1) ^ result_32) >> 31; // of = result30 ^ result31
-  SET_FLAGS_OxxxxC(of, cf);
+  BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(of, cf);
 
   BX_NEXT_INSTR(i);
 }
@@ -458,7 +460,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::SHL_EdM(bxInstruction_c *i)
     cf = (op1_32 >> (32 - count)) & 0x1;
     of = cf ^ (result_32 >> 31);
     SET_FLAGS_OSZAPC_LOGIC_32(result_32);
-    SET_FLAGS_OxxxxC(of, cf);
+    BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(of, cf);
   }
 
   BX_NEXT_INSTR(i);
@@ -490,7 +492,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::SHL_EdR(bxInstruction_c *i)
     unsigned of = cf ^ (result_32 >> 31);
 
     SET_FLAGS_OSZAPC_LOGIC_32(result_32);
-    SET_FLAGS_OxxxxC(of, cf);
+    BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(of, cf);
   }
 
   BX_NEXT_INSTR(i);
@@ -522,7 +524,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::SHR_EdM(bxInstruction_c *i)
     unsigned of = ((result_32 << 1) ^ result_32) >> 31;
 
     SET_FLAGS_OSZAPC_LOGIC_32(result_32);
-    SET_FLAGS_OxxxxC(of, cf);
+    BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(of, cf);
   }
 
   BX_NEXT_INSTR(i);
@@ -553,7 +555,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::SHR_EdR(bxInstruction_c *i)
     unsigned of = ((result_32 << 1) ^ result_32) >> 31;
 
     SET_FLAGS_OSZAPC_LOGIC_32(result_32);
-    SET_FLAGS_OxxxxC(of, cf);
+    BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(of, cf);
   }
 
   BX_NEXT_INSTR(i);
@@ -582,7 +584,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::SAR_EdM(bxInstruction_c *i)
 
     SET_FLAGS_OSZAPC_LOGIC_32(result_32);
     unsigned cf = (op1_32 >> (count - 1)) & 1;
-    SET_FLAGS_OxxxxC(0, cf); /* signed overflow cannot happen in SAR instruction */
+    BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(0, cf); /* signed overflow cannot happen in SAR instruction */
   }
 
   BX_NEXT_INSTR(i);
@@ -612,7 +614,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::SAR_EdR(bxInstruction_c *i)
 
     SET_FLAGS_OSZAPC_LOGIC_32(result_32);
     unsigned cf = (op1_32 >> (count - 1)) & 1;
-    SET_FLAGS_OxxxxC(0, cf); /* signed overflow cannot happen in SAR instruction */
+    BX_CPU_THIS_PTR oszapc.set_flags_OxxxxC(0, cf); /* signed overflow cannot happen in SAR instruction */
   }
 
   BX_NEXT_INSTR(i);

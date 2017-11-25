@@ -237,7 +237,7 @@ void disassembler::Gy(const x86_insn *insn)
 // vex encoded general purpose register
 void disassembler::By(const x86_insn *insn)
 {
-  if (insn->os_64) 
+  if (insn->os_64)
     dis_sprintf("%s", general_64bit_regname[insn->vex_vvv]);
   else
     dis_sprintf("%s", general_32bit_regname[insn->vex_vvv]);
@@ -662,8 +662,9 @@ void disassembler::Jb(const x86_insn *insn)
 
   if (insn->is_64) {
     Bit64u imm64 = (Bit8s) imm8;
-    sym = GET_SYMBOL(db_eip + imm64);
-    sym = sym ? sym : "<unknown1>";
+    Bit64u target = db_eip + imm64;
+    sym = GET_SYMBOL(target);
+    sym = sym ? sym : "<unknown>";
 
     if (offset_mode_hex) {
       dis_sprintf(SYMBOLIC_JUMP(".+0x" FMT_ADDRX64), imm64, sym);
@@ -673,8 +674,6 @@ void disassembler::Jb(const x86_insn *insn)
     }
 
     if (db_cs_base != BX_JUMP_TARGET_NOT_REQ) {
-      Bit64u target = db_eip + imm64;
-      //target += db_cs_base;
       dis_sprintf(" (0x" FMT_ADDRX64 ")", target);
     }
 
@@ -683,8 +682,9 @@ void disassembler::Jb(const x86_insn *insn)
 
   if (insn->os_32) {
     Bit32u imm32 = (Bit8s) imm8;
-    sym = GET_SYMBOL(db_cs_base + db_eip + imm32);
-    sym = sym ? sym : "<unknown2>";
+    Bit32u target = (Bit32u)(db_cs_base + db_eip + (Bit32s) imm32);
+    sym = GET_SYMBOL(target);
+    sym = sym ? sym : "<unknown>";
 
     if (offset_mode_hex) {
       dis_sprintf(SYMBOLIC_JUMP(".+0x%08x"), (unsigned) imm32, sym);
@@ -694,15 +694,14 @@ void disassembler::Jb(const x86_insn *insn)
     }
 
     if (db_cs_base != BX_JUMP_TARGET_NOT_REQ) {
-      Bit32u target = (Bit32u)(db_cs_base + db_eip + (Bit32s) imm32);
-
       dis_sprintf(" (0x%08x)", target);
     }
   }
   else {
     Bit16u imm16 = (Bit8s) imm8;
-    sym = GET_SYMBOL(db_eip + imm16);
-    sym = sym ? sym : "<unknown3>";
+    Bit16u target = (Bit16u)((db_eip + (Bit16s) imm16) & 0xffff);
+    sym = GET_SYMBOL(target);
+    sym = sym ? sym : "<unknown>";
 
     if (offset_mode_hex) {
       dis_sprintf(SYMBOLIC_JUMP(".+0x%04x"), (unsigned) imm16, sym);
@@ -712,7 +711,6 @@ void disassembler::Jb(const x86_insn *insn)
     }
 
     if (db_cs_base != BX_JUMP_TARGET_NOT_REQ) {
-      Bit16u target = (Bit16u)((db_eip + (Bit16s) imm16) & 0xffff);
       dis_sprintf(" (0x%08x)", target + db_cs_base);
     }
   }
@@ -726,8 +724,9 @@ void disassembler::Jw(const x86_insn *insn)
   Bit16s imm16 = (Bit16s) fetch_word();
   const char *sym;
 
-  sym = GET_SYMBOL(db_eip + imm16);
-  sym = sym ? sym : "<unknown4>";
+  Bit16u target = (db_eip + imm16) & 0xffff;
+  sym = GET_SYMBOL(target);
+  sym = sym ? sym : "<unknown>";
   if (offset_mode_hex) {
     dis_sprintf(SYMBOLIC_JUMP(".+0x%04x"),
         (unsigned) (Bit16u) imm16, sym);
@@ -737,7 +736,6 @@ void disassembler::Jw(const x86_insn *insn)
   }
 
   if (db_cs_base != BX_JUMP_TARGET_NOT_REQ) {
-    Bit16u target = (db_eip + imm16) & 0xffff;
     dis_sprintf(" (0x%08x)", target + db_cs_base);
   }
 }
@@ -749,8 +747,9 @@ void disassembler::Jd(const x86_insn *insn)
 
   if (insn->is_64) {
     Bit64u imm64 = (Bit32s) imm32;
-    sym = GET_SYMBOL(db_eip + imm64);
-    sym = sym ? sym : "<unknown5>";
+    Bit64u target = db_eip + (Bit64s) imm64;
+    sym = GET_SYMBOL(target);
+    sym = sym ? sym : "<unknown>";
 
     if (offset_mode_hex) {
       dis_sprintf(SYMBOLIC_JUMP(".+0x" FMT_ADDRX64),
@@ -761,15 +760,15 @@ void disassembler::Jd(const x86_insn *insn)
     }
 
     if (db_cs_base != BX_JUMP_TARGET_NOT_REQ) {
-      Bit64u target = db_eip + (Bit64s) imm64;
       dis_sprintf(" (0x" FMT_ADDRX64 ")", target);
     }
 
     return;
   }
 
-  sym = GET_SYMBOL(db_cs_base + db_eip + imm32);
-  sym = sym ? sym : "<unknown6>";
+  Bit32u target = (Bit32u)(db_cs_base + db_eip + (Bit32s) imm32);
+  sym = GET_SYMBOL(target);
+  sym = sym ? sym : "<unknown>";
   if (offset_mode_hex) {
     dis_sprintf(SYMBOLIC_JUMP(".+0x%08x"), (unsigned) imm32, sym);
   }
@@ -778,7 +777,6 @@ void disassembler::Jd(const x86_insn *insn)
   }
 
   if (db_cs_base != BX_JUMP_TARGET_NOT_REQ) {
-    Bit32u target = (Bit32u)(db_cs_base + db_eip + (Bit32s) imm32);
     dis_sprintf(" (0x%08x)", target);
   }
 }

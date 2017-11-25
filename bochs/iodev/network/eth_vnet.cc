@@ -242,6 +242,7 @@ void bx_vnet_pktmover_c::pktmover_init(
   memcpy(dhcp.guest_ipv4addr, &broadcast_ipv4addr[1][0], 4);
   memcpy(dhcp.default_guest_ipv4addr, default_guest_ipv4addr, 4);
   memcpy(&dhcp.dns_ipv4addr, &broadcast_ipv4addr[0][0], 4);
+  dhcp.hostname = NULL;
 
   l4data_used = 0;
 
@@ -285,6 +286,9 @@ void bx_vnet_pktmover_c::pktmover_init(
 
 bx_vnet_pktmover_c::~bx_vnet_pktmover_c()
 {
+#if BX_ETH_VNET_LOGGING
+  fclose(pktlog_txt);
+#endif
   bx_vnet_instances--;
 }
 

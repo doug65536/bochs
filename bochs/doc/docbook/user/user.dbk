@@ -521,7 +521,8 @@ currently work with.
     <entry>Yes</entry>
     <entry>Emulates most of the i440FX PCI chipset. The Host-to-PCI bridge
     (PMC/DBX), the PCI-to-ISA bridge and the PCI IDE controller (PIIX3) are
-    available. For PCI cards there are 5 PCI slots supported.
+    available. For PCI cards there are 5 PCI slots supported. ACPI and HPET
+    features are also available.
     </entry>
   </row>
   <row>
@@ -1148,6 +1149,11 @@ The <replaceable>tagname</replaceable> tells which release you want, and it can 
       </row>
     </thead>
     <tbody>
+      <row>
+        <entry>2.6.9 (intermediate)</entry>
+        <entry>REL_2_6_9_FINAL</entry>
+        <entry>13181</entry>
+      </row>
       <row>
         <entry>2.6.8 (intermediate)</entry>
         <entry>REL_2_6_8_FINAL</entry>
@@ -2454,8 +2460,8 @@ SMP, x86_64 support) and the devices options (e.g. PCI, USB, Cirrus graphics).
     <row>
       <entry>--enable-voodoo</entry>
       <entry>no</entry>
-      <entry>Enable experimental 3dfx Voodoo Graphics emulation. Currently only
-      the Voodoo1 model is known to work (Voodoo2 is under construction).
+      <entry>Enable experimental 3dfx Voodoo Graphics emulation. The Voodoo1 is
+      known to work, the Voodoo2 support is not yet complete, but almost usable.
       </entry>
     </row>
     <row>
@@ -3826,7 +3832,8 @@ Example:
 </screen>
 This defines the Voodoo Graphics emulation (experimental). Currently
 supported models are 'voodoo1' and 'voodoo2'. The Voodoo2 support is
-not yet complete.
+not yet complete, but almost usable. The gui screen update timing is
+controlled by the related 'vga' options.
 </para>
 </section>
 
@@ -7790,13 +7797,24 @@ From here, you may use the following commands:
   vbreak seg:off              Set a virtual address instruction breakpoint
   vb     seg:off
 
+  vbreak seg:off if "expr"    Set a conditional virtual address instruction breakpoint
+  vb     seg:off if "expr"
+
   lbreak addr                 Set a linear address instruction breakpoint
   lb     addr
+
+  lbreak addr if "expr"       Set a conditional linear address instruction breakpoint
+  lb     addr if "expr"
 
   pbreak [*] addr             Set a physical address instruction breakpoint
   pb     [*] addr             (the '*' is optional for GDB compatibility)
   break  [*] addr
   b      [*] addr
+
+  pbreak [*] addr if "expr"   Set a conditional physical address instruction breakpoint
+  pb     [*] addr if "expr"   (the '*' is optional for GDB compatibility)
+  break  [*] addr if "expr"
+  b      [*] addr if "expr"
 
   info break                  Display state of all current breakpoints
   bpe    n                    Enable a breakpoint

@@ -815,7 +815,7 @@ static BxOpcodeDecodeDescriptor32 decode32_descriptor[] =
    /* 0F 38 CC */ { &decoder32_sse, BxOpcodeGroupSSE_0F38CC },
    /* 0F 38 CD */ { &decoder32_sse, BxOpcodeGroupSSE_0F38CD },
    /* 0F 38 CE */ { &decoder_ud32, NULL },
-   /* 0F 38 CF */ { &decoder_ud32, NULL },
+   /* 0F 38 CF */ { &decoder32_sse, BxOpcodeGroupSSE_0F38CF },
    /* 0F 38 D0 */ { &decoder_ud32, NULL },
    /* 0F 38 D1 */ { &decoder_ud32, NULL },
    /* 0F 38 D2 */ { &decoder_ud32, NULL },
@@ -1072,8 +1072,8 @@ static BxOpcodeDecodeDescriptor32 decode32_descriptor[] =
    /* 0F 3A CB */ { &decoder_ud32, NULL },
    /* 0F 3A CC */ { &decoder32_sse, BxOpcodeGroupSSE_0F3ACC },
    /* 0F 3A CD */ { &decoder_ud32, NULL },
-   /* 0F 3A CE */ { &decoder_ud32, NULL },
-   /* 0F 3A CF */ { &decoder_ud32, NULL },
+   /* 0F 3A CE */ { &decoder32_sse, BxOpcodeGroupSSE_0F3ACE },
+   /* 0F 3A CF */ { &decoder32_sse, BxOpcodeGroupSSE_0F3ACF },
    /* 0F 3A D0 */ { &decoder_ud32, NULL },
    /* 0F 3A D1 */ { &decoder_ud32, NULL },
    /* 0F 3A D2 */ { &decoder_ud32, NULL },
@@ -1196,7 +1196,7 @@ static unsigned sreg_mod1or2_base32[8] = {
 // table of all Bochs opcodes
 bxIAOpcodeTable BxOpcodesTable[] = {
 #define bx_define_opcode(a, b, c, d, s1, s2, s3, s4, e) { b, c, { s1, s2, s3, s4 }, e },
-#include "ia_opcodes.h"
+#include "ia_opcodes.def"
 };
 #undef  bx_define_opcode
 
@@ -1554,9 +1554,12 @@ bx_bool assign_srcs(bxInstruction_c *i, unsigned ia_opcode, unsigned nnn, unsign
 {
   for (unsigned n = 0; n <= 3; n++) {
     unsigned src = (unsigned) BxOpcodesTable[ia_opcode].src[n];
-    unsigned type = src >> 3;
-    switch(src & 0x7) {
+    unsigned type = BX_DISASM_SRC_TYPE(src);
+    unsigned index = BX_DISASM_SRC_ORIGIN(src);
+    switch(index) {
     case BX_SRC_NONE:
+    case BX_SRC_IMM:
+    case BX_SRC_IMPLICIT:
       break;
     case BX_SRC_EAX:
       i->setSrcReg(n, 0);
@@ -1596,14 +1599,16 @@ bx_bool assign_srcs(bxInstruction_c *i, unsigned ia_opcode, bx_bool is_64, unsig
   // assign sources
   for (unsigned n = 0; n <= 3; n++) {
     unsigned src = (unsigned) BxOpcodesTable[ia_opcode].src[n];
-    unsigned type = src >> 3;
-    src &= 0x7;
+    unsigned type = BX_DISASM_SRC_TYPE(src);
+    src = BX_DISASM_SRC_ORIGIN(src);
 #if BX_SUPPORT_EVEX
     bx_bool mem_src = BX_FALSE;
 #endif
 
     switch(src) {
     case BX_SRC_NONE:
+    case BX_SRC_IMM:
+    case BX_SRC_IMPLICIT:
       break;
     case BX_SRC_EAX:
       i->setSrcReg(n, 0);
@@ -1708,6 +1713,9 @@ int decoder_vex32(const Bit8u *iptr, unsigned &remain, bxInstruction_c *i, unsig
   // make sure VEX 0xC4 or VEX 0xC5
   assert((b1 & ~0x1) == 0xc4);
 
+  if (remain == 0)
+    return(-1);
+
   if ((*iptr & 0xc0) != 0xc0) {
     return decoder_modrm32(iptr, remain, i, b1, sse_prefix, opcode_table);
   }
@@ -1716,14 +1724,12 @@ int decoder_vex32(const Bit8u *iptr, unsigned &remain, bxInstruction_c *i, unsig
   unsigned rm = 0, mod = 0, nnn = 0;
 
   if (sse_prefix)
-    return(ia_opcode);
+    return(BX_IA_ERROR);
 
   bx_bool vex_w = 0;
   unsigned vex_opcext = 1;
-  if (remain == 0)
-    return(-1);
-  remain--;
   unsigned vex = *iptr++;
+  remain--;
 
   if (b1 == 0xc4) {
     // decode 3-byte VEX prefix
@@ -1838,6 +1844,9 @@ int decoder_evex32(const Bit8u *iptr, unsigned &remain, bxInstruction_c *i, unsi
   // make sure EVEX 0x62 prefix
   assert(b1 == 0x62);
 
+  if (remain == 0)
+    return(-1);
+
   if ((*iptr & 0xc0) != 0xc0) {
     return decoder_modrm32(iptr, remain, i, b1, sse_prefix, opcode_table);
   }
@@ -1846,7 +1855,7 @@ int decoder_evex32(const Bit8u *iptr, unsigned &remain, bxInstruction_c *i, unsi
   bx_bool displ8 = BX_FALSE;
 
   if (sse_prefix)
-    return(ia_opcode);
+    return(BX_IA_ERROR);
 
   Bit32u evex;
   if (remain > 3) {
@@ -1960,6 +1969,9 @@ int decoder_xop32(const Bit8u *iptr, unsigned &remain, bxInstruction_c *i, unsig
 
   // make sure XOP 0x8f prefix
   assert(b1 == 0x8f);
+
+  if (remain == 0)
+    return(-1);
 
   if ((*iptr & 0xc8) != 0xc8) {
     // not XOP prefix, decode regular opcode
@@ -2798,7 +2810,7 @@ const char *get_bx_opcode_name(Bit16u ia_opcode)
   static const char* BxOpcodeNamesTable[BX_IA_LAST] =
   {
 #define bx_define_opcode(a, b, c, d, s1, s2, s3, s4, e) #a,
-#include "ia_opcodes.h"
+#include "ia_opcodes.def"
   };
 #undef  bx_define_opcode
 
@@ -2810,7 +2822,7 @@ void BX_CPU_C::init_FetchDecodeTables(void)
   static Bit8u BxOpcodeFeatures[BX_IA_LAST] =
   {
 #define bx_define_opcode(a, b, c, d, s1, s2, s3, s4, e) d,
-#include "ia_opcodes.h"
+#include "ia_opcodes.def"
   };
 #undef  bx_define_opcode
 

@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//  Copyright (C) 2016  The Bochs Project
+//  Copyright (C) 2016-2017  The Bochs Project
 //
 //  This library is free software; you can redistribute it and/or
 //  modify it under the terms of the GNU Lesser General Public
@@ -66,7 +66,8 @@ enum {
   BX_ISA_XSAVEOPT,                /* XSAVEOPT instruction */
   BX_ISA_XSAVEC,                  /* XSAVEC instruction */
   BX_ISA_XSAVES,                  /* XSAVES instruction */
-  BX_ISA_AES_PCLMULQDQ,           /* AES+PCLMULQDQ instruction */
+  BX_ISA_AES_PCLMULQDQ,           /* AES+PCLMULQDQ instructions */
+  BX_ISA_VAES_VPCLMULQDQ,         /* Wide vector versions of AES+PCLMULQDQ instructions */
   BX_ISA_MOVBE,                   /* MOVBE instruction */
   BX_ISA_FSGSBASE,                /* FS/GS BASE access instruction */
   BX_ISA_INVPCID,                 /* INVPCID instruction */
@@ -89,6 +90,7 @@ enum {
   BX_ISA_SMAP,                    /* SMAP support */
   BX_ISA_RDSEED,                  /* RDSEED instruction */
   BX_ISA_SHA,                     /* SHA instruction */
+  BX_ISA_GFNI,                    /* GFNI instruction */
   BX_ISA_AVX512,                  /* AVX-512 instruction */
   BX_ISA_AVX512_CD,               /* AVX-512 Conflict Detection instruction */
   BX_ISA_AVX512_PF,               /* AVX-512 Sparse Prefetch instruction */
@@ -96,15 +98,19 @@ enum {
   BX_ISA_AVX512_DQ,               /* AVX-512DQ instruction */
   BX_ISA_AVX512_BW,               /* AVX-512 Byte/Word instruction */
   BX_ISA_AVX512_VL,               /* AVX-512 Vector Length extensions */
-  BX_ISA_AVX512_VBMI,             /* AVX-512 Vector Bit Manipulation Instructions */
+  BX_ISA_AVX512_VBMI,             /* AVX-512 VBMI : Vector Bit Manipulation Instructions */
+  BX_ISA_AVX512_VBMI2,            /* AVX-512 VBMI2 : Vector Bit Manipulation Instructions */
   BX_ISA_AVX512_IFMA52,           /* AVX-512 IFMA52 Instructions */
   BX_ISA_AVX512_VPOPCNTDQ,        /* AVX-512 VPOPCNTD/VPOPCNTQ Instructions */
+  BX_ISA_AVX512_VNNI,             /* AVX-512 VNNI Instructions */
+  BX_ISA_AVX512_BITALG,           /* AVX-512 BITALG Instructions */
   BX_ISA_XAPIC,                   /* XAPIC support */
   BX_ISA_X2APIC,                  /* X2APIC support */
   BX_ISA_XAPIC_EXT,               /* XAPIC Extensions support */
   BX_ISA_PCID,                    /* PCID pages support */
   BX_ISA_SMEP,                    /* SMEP support */
   BX_ISA_TSC_DEADLINE,            /* TSC-Deadline */
+  BX_ISA_FOPCODE_DEPRECATION,     /* FOPCODE Deprecation - FOPCODE update on unmasked x87 exception only */
   BX_ISA_FCS_FDS_DEPRECATION,     /* FCS/FDS Deprecation */
   BX_ISA_FDP_DEPRECATION,         /* FDP Deprecation - FDP update on unmasked x87 exception only */
   BX_ISA_PKU,                     /* User-Mode Protection Keys */

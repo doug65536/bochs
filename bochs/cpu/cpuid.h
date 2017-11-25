@@ -140,30 +140,31 @@ protected:
 typedef bx_cpuid_t* (*bx_create_cpuid_method)(BX_CPU_C *cpu);
 
 // cpuid VMX features
-#define BX_VMX_TPR_SHADOW            (1 <<  0)              /* TPR shadow */
-#define BX_VMX_VIRTUAL_NMI           (1 <<  1)              /* Virtual NMI */
-#define BX_VMX_APIC_VIRTUALIZATION   (1 <<  2)              /* APIC Access Virtualization */
-#define BX_VMX_WBINVD_VMEXIT         (1 <<  3)              /* WBINVD VMEXIT */
-#define BX_VMX_PERF_GLOBAL_CTRL      (1 <<  4)              /* Save/Restore MSR_PERF_GLOBAL_CTRL */
-#define BX_VMX_MONITOR_TRAP_FLAG     (1 <<  5)              /* Monitor trap Flag (MTF) */
-#define BX_VMX_X2APIC_VIRTUALIZATION (1 <<  6)              /* Virtualize X2APIC */
-#define BX_VMX_EPT                   (1 <<  7)              /* Extended Page Tables (EPT) */
-#define BX_VMX_VPID                  (1 <<  8)              /* VPID */
-#define BX_VMX_UNRESTRICTED_GUEST    (1 <<  9)              /* Unrestricted Guest */
-#define BX_VMX_PREEMPTION_TIMER      (1 << 10)              /* VMX preemption timer */
-#define BX_VMX_SAVE_DEBUGCTL_DISABLE (1 << 11)              /* Disable Save/Restore of MSR_DEBUGCTL */
-#define BX_VMX_PAT                   (1 << 12)              /* Save/Restore MSR_PAT */
-#define BX_VMX_EFER                  (1 << 13)              /* Save/Restore MSR_EFER */
-#define BX_VMX_DESCRIPTOR_TABLE_EXIT (1 << 14)              /* Descriptor Table VMEXIT */
-#define BX_VMX_PAUSE_LOOP_EXITING    (1 << 15)              /* Pause Loop Exiting */
-#define BX_VMX_EPTP_SWITCHING        (1 << 16)              /* EPTP switching (VM Function 0) */
-#define BX_VMX_EPT_ACCESS_DIRTY      (1 << 17)              /* Extended Page Tables (EPT) A/D Bits */
-#define BX_VMX_VINTR_DELIVERY        (1 << 18)              /* Virtual Interrupt Delivery */
-#define BX_VMX_POSTED_INSTERRUPTS    (1 << 19)              /* Posted Interrupts support - not implemented yet */
-#define BX_VMX_VMCS_SHADOWING        (1 << 20)              /* VMCS Shadowing */
-#define BX_VMX_EPT_EXCEPTION         (1 << 21)              /* EPT Violation (#VE) exception */
-#define BX_VMX_PML                   (1 << 22)              /* Page Modification Logging - not implemented yet */
-#define BX_VMX_TSC_SCALING           (1 << 23)              /* TSC Scaling */
+#define BX_VMX_TPR_SHADOW                       (1 <<  0)   /* TPR shadow */
+#define BX_VMX_VIRTUAL_NMI                      (1 <<  1)   /* Virtual NMI */
+#define BX_VMX_APIC_VIRTUALIZATION              (1 <<  2)   /* APIC Access Virtualization */
+#define BX_VMX_WBINVD_VMEXIT                    (1 <<  3)   /* WBINVD VMEXIT */
+#define BX_VMX_PERF_GLOBAL_CTRL                 (1 <<  4)   /* Save/Restore MSR_PERF_GLOBAL_CTRL */
+#define BX_VMX_MONITOR_TRAP_FLAG                (1 <<  5)   /* Monitor trap Flag (MTF) */
+#define BX_VMX_X2APIC_VIRTUALIZATION            (1 <<  6)   /* Virtualize X2APIC */
+#define BX_VMX_EPT                              (1 <<  7)   /* Extended Page Tables (EPT) */
+#define BX_VMX_VPID                             (1 <<  8)   /* VPID */
+#define BX_VMX_UNRESTRICTED_GUEST               (1 <<  9)   /* Unrestricted Guest */
+#define BX_VMX_PREEMPTION_TIMER                 (1 << 10)   /* VMX preemption timer */
+#define BX_VMX_SAVE_DEBUGCTL_DISABLE            (1 << 11)   /* Disable Save/Restore of MSR_DEBUGCTL */
+#define BX_VMX_PAT                              (1 << 12)   /* Save/Restore MSR_PAT */
+#define BX_VMX_EFER                             (1 << 13)   /* Save/Restore MSR_EFER */
+#define BX_VMX_DESCRIPTOR_TABLE_EXIT            (1 << 14)   /* Descriptor Table VMEXIT */
+#define BX_VMX_PAUSE_LOOP_EXITING               (1 << 15)   /* Pause Loop Exiting */
+#define BX_VMX_EPTP_SWITCHING                   (1 << 16)   /* EPTP switching (VM Function 0) */
+#define BX_VMX_EPT_ACCESS_DIRTY                 (1 << 17)   /* Extended Page Tables (EPT) A/D Bits */
+#define BX_VMX_VINTR_DELIVERY                   (1 << 18)   /* Virtual Interrupt Delivery */
+#define BX_VMX_POSTED_INSTERRUPTS               (1 << 19)   /* Posted Interrupts support - not implemented yet */
+#define BX_VMX_VMCS_SHADOWING                   (1 << 20)   /* VMCS Shadowing */
+#define BX_VMX_EPT_EXCEPTION                    (1 << 21)   /* EPT Violation (#VE) exception */
+#define BX_VMX_PML                              (1 << 22)   /* Page Modification Logging - not implemented yet */
+#define BX_VMX_TSC_SCALING                      (1 << 23)   /* TSC Scaling */
+#define BX_VMX_SW_INTERRUPT_INJECTION_ILEN_0  	(1 << 24)   /* Allow software interrupt injection with instruction length 0 */
 
 // CPUID defines - STD features CPUID[0x00000001].EDX
 // ----------------------------
@@ -312,7 +313,7 @@ typedef bx_cpuid_t* (*bx_create_cpuid_method)(BX_CPU_C *cpu);
 //   [3:3]    BMI1: Advanced Bit Manipulation Extensions
 //   [4:4]    HLE: Hardware Lock Elision
 //   [5:5]    AVX2
-//   [6:6]    reserved
+//   [6:6]    FDP Deprecation
 //   [7:7]    SMEP: Supervisor Mode Execution Protection
 //   [8:8]    BMI2: Advanced Bit Manipulation Extensions
 //   [9:9]    Support for Enhanced REP MOVSB/STOSB
@@ -380,26 +381,46 @@ typedef bx_cpuid_t* (*bx_create_cpuid_method)(BX_CPU_C *cpu);
 //   [2:2]    UMIP: Supports user-mode instruction prevention
 //   [3:3]    PKU: Protection keys for user-mode pages.
 //   [4:4]    OSPKE: OS has set CR4.PKE to enable protection keys
-//  [13:5]    reserved
+//   [5:5]    reserved
+//   [6:6]    AVX512 VBMI2 instructions support
+//   [7:7]    reserved
+//   [8:8]    GFNI instructions support
+//   [9:9]    VAES instructions support
+// [10:10]    VPCLMULQDQ instruction support
+// [11:11]    AVX512 VNNI instructions support
+// [12:12]    AVX512 BITALG instructions support
+// [13:13]    reserved
 // [14:14]    AVX512 VPOPCNTDQ: AVX512 VPOPCNTD/VPOPCNTQ instructions
 // [15:15]    reserved
 // [16:16]    LA57: LA57 and 5-level paging
-// [21:15]    reserved
+// [21:17]    reserved
 // [22:22]    RDPID: Read Processor ID support
 // [29:23]    reserved
 // [30:30]    SGX_LC: SGX Launch Configuration
 // [31:31]    reserved
 
 #define BX_CPUID_EXT4_PREFETCHWT1            (1 <<  0)
-#define BX_CPUID_EXT4_AVX512VBMI             (1 <<  1)
+#define BX_CPUID_EXT4_AVX512_VBMI            (1 <<  1)
 #define BX_CPUID_EXT4_UMIP                   (1 <<  2)
 #define BX_CPUID_EXT4_PKU                    (1 <<  3)
 #define BX_CPUID_EXT4_OSPKE                  (1 <<  4)
-// ...
+#define BX_CPUID_EXT4_RESERVED5              (1 <<  5)
+#define BX_CPUID_EXT4_AVX512_VBMI2           (1 <<  6)
+#define BX_CPUID_EXT4_RESERVED7              (1 <<  7)
+#define BX_CPUID_EXT4_GFNI                   (1 <<  8)
+#define BX_CPUID_EXT4_VAES                   (1 <<  9)
+#define BX_CPUID_EXT4_VPCLMULQDQ             (1 << 10)
+#define BX_CPUID_EXT4_AVX512_VNNI            (1 << 11)
+#define BX_CPUID_EXT4_AVX512_BITALG          (1 << 12)
+#define BX_CPUID_EXT4_RESERVED13             (1 << 13)
 #define BX_CPUID_EXT4_AVX512_VPOPCNTDQ       (1 << 14)
 #define BX_CPUID_EXT4_RESERVED15             (1 << 15)
 #define BX_CPUID_EXT4_LA57                   (1 << 16)
-// ...
+#define BX_CPUID_EXT4_RESERVED17             (1 << 17)
+#define BX_CPUID_EXT4_RESERVED18             (1 << 18)
+#define BX_CPUID_EXT4_RESERVED19             (1 << 19)
+#define BX_CPUID_EXT4_RESERVED20             (1 << 20)
+#define BX_CPUID_EXT4_RESERVED21             (1 << 21)
 #define BX_CPUID_EXT4_RDPID                  (1 << 22)
 #define BX_CPUID_EXT4_RESERVED23             (1 << 23)
 #define BX_CPUID_EXT4_RESERVED24             (1 << 24)
@@ -410,6 +431,18 @@ typedef bx_cpuid_t* (*bx_create_cpuid_method)(BX_CPU_C *cpu);
 #define BX_CPUID_EXT4_RESERVED29             (1 << 29)
 #define BX_CPUID_EXT4_SGX_LAUNCH_CONFIG      (1 << 30)
 #define BX_CPUID_EXT4_RESERVED31             (1 << 31)
+
+// CPUID defines - EXT5 features CPUID[0x00000007].EDX
+// -----------------------------
+//   [1:0]    reserved
+//   [2:2]    AVX512 4VNNIW instructions support
+//   [3:3]    AVX512 4FMAPS instructions support
+
+#define BX_CPUID_EXT5_RESERVED0              (1 <<  0)
+#define BX_CPUID_EXT5_RESERVED1              (1 <<  1)
+#define BX_CPUID_EXT5_AVX512_4VNNIW          (1 <<  2)
+#define BX_CPUID_EXT5_AVX512_4FMAPS          (1 <<  3)
+// ...
 
 // CPUID defines - STD2 features CPUID[0x80000001].EDX
 // -----------------------------

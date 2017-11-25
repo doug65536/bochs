@@ -169,7 +169,7 @@ void BX_MEM_C::read_block(Bit32u block)
 
 void BX_MEM_C::allocate_block(Bit32u block)
 {
-  const Bit32u max_blocks = BX_MEM_THIS allocated / BX_MEM_BLOCK_LEN;
+  const Bit32u max_blocks = (Bit32u)(BX_MEM_THIS allocated / BX_MEM_BLOCK_LEN);
 
 #if BX_LARGE_RAMFILE
   /* 
@@ -300,7 +300,7 @@ void BX_MEM_C::register_state()
   char param_name[15];
 
   bx_list_c *list = new bx_list_c(SIM->get_bochs_root(), "memory", "Memory State");
-  Bit32u num_blocks = BX_MEM_THIS len / BX_MEM_BLOCK_LEN;
+  Bit32u num_blocks = (Bit32u)(BX_MEM_THIS len / BX_MEM_BLOCK_LEN);
 #if BX_LARGE_RAMFILE
   bx_shadow_filedata_c *ramfile = new bx_shadow_filedata_c(list, "ram", &(BX_MEM_THIS overflow_file));
   ramfile->set_sr_handlers(this, ramfile_save_handler, (filedata_restore_handler)NULL);
@@ -506,7 +506,7 @@ void BX_MEM_C::load_RAM(const char *path, bx_phy_address ramaddress)
 {
   struct stat stat_buf;
   int fd, ret;
-  Bit32u size, offset;
+  unsigned long size, offset;
 
   if (*path == '\0') {
     BX_PANIC(("RAM: Optional RAM image undefined"));
@@ -824,7 +824,7 @@ BX_MEM_C::registerMemoryHandlers(void *param, memory_handler_t read_handler,
 {
   if (end_addr < begin_addr)
     return 0;
-  if (!read_handler || !write_handler) // allow NULL fetch handler
+  if (!read_handler) // allow NULL write and fetch handler
     return 0;
   BX_INFO(("Register memory access handlers: 0x" FMT_PHY_ADDRX " - 0x" FMT_PHY_ADDRX, begin_addr, end_addr));
   for (Bit32u page_idx = (Bit32u)(begin_addr >> 20); page_idx <= (Bit32u)(end_addr >> 20); page_idx++) {

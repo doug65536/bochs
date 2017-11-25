@@ -78,7 +78,7 @@ public:
       union {
         Bit32u Id;
         Bit16u Iw[2];
-        // use Ib[3] as AVX mask register
+        // use Ib[3] as EVEX mask register
         // use Ib[2] as AVX attributes
         //     7..5 (unused)
         //     4..4 VEX.W
@@ -369,12 +369,5 @@ public:
 
 };
 // <TAG-CLASS-INSTRUCTION-END>
-
-enum {
-#define bx_define_opcode(a, b, c, d, s1, s2, s3, s4, e) a,
-#include "ia_opcodes.h"
-   BX_IA_LAST
-};
-#undef  bx_define_opcode
 
 #endif

@@ -62,11 +62,6 @@ bx_soundlow_waveout_file_c::bx_soundlow_waveout_file_c()
   type = BX_SOUNDFILE_RAW;
 }
 
-bx_soundlow_waveout_file_c::~bx_soundlow_waveout_file_c()
-{
-  closewaveoutput();
-}
-
 void bx_soundlow_waveout_file_c::initwavfile()
 {
   Bit8u waveheader[44] =
@@ -111,10 +106,10 @@ int bx_soundlow_waveout_file_c::openwaveoutput(const char *wavedev)
       initwavfile();
     }
     set_pcm_params(&real_pcm_param);
-    if (resampler_control != 1) {
+    if (!res_thread_start) {
       start_resampler_thread();
     }
-    if (mixer_control != 1) {
+    if (!mix_thread_start) {
       pcm_callback_id = register_wave_callback(this, pcm_callback);
       start_mixer_thread();
     }

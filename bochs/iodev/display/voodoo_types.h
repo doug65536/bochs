@@ -8,27 +8,6 @@
     TYPE DEFINITIONS
 ***************************************************************************/
 
-/* core components of the attotime structure */
-typedef Bit64s attoseconds_t;
-typedef Bit32s seconds_t;
-
-
-/* the attotime structure itself */
-typedef struct _attotime attotime;
-struct _attotime
-{
-  seconds_t   seconds;
-  attoseconds_t attoseconds;
-};
-
-#define ATTOSECONDS_PER_SECOND_SQRT   ((attoseconds_t)1000000000)
-#define ATTOSECONDS_PER_SECOND      (ATTOSECONDS_PER_SECOND_SQRT * ATTOSECONDS_PER_SECOND_SQRT)
-
-/* convert between hertz (as a double) and attoseconds */
-#define ATTOSECONDS_TO_HZ(x)      ((double)ATTOSECONDS_PER_SECOND / (double)(x))
-#define HZ_TO_ATTOSECONDS(x)      ((attoseconds_t)(ATTOSECONDS_PER_SECOND / (x)))
-
-
 typedef Bit32u offs_t;
 
 /* poly_param_extent describes information for a single parameter in an extent */
@@ -249,8 +228,6 @@ BX_CPP_INLINE Bit32s _mul_32x32_shift(Bit32s a, Bit32s b, Bit8s shift)
 }
 
 
-typedef void (*poly_draw_scanline_func)(void *dest, Bit32s scanline, const poly_extent *extent, const void *extradata, int threadid);
-
 BX_CPP_INLINE rgb_t rgba_bilinear_filter(rgb_t rgb00, rgb_t rgb01, rgb_t rgb10, rgb_t rgb11, Bit8u u, Bit8u v)
 {
   Bit32u ag0, ag1, rb0, rb1;
@@ -290,6 +267,5 @@ struct _tri_extent
 typedef struct _tri_work_unit tri_work_unit;
 struct _tri_work_unit
 {
-//  work_unit_shared  shared;         /* shared data */
   tri_extent      extent[8]; /* array of scanline extents */
 };

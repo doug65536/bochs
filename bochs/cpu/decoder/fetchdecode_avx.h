@@ -2,7 +2,7 @@
 // $Id$
 /////////////////////////////////////////////////////////////////////////
 //
-//   Copyright (c) 2011-2016 Stanislav Shwartsman
+//   Copyright (c) 2011-2017 Stanislav Shwartsman
 //          Written by Stanislav Shwartsman [sshwarts at sourceforge net]
 //
 //  This library is free software; you can redistribute it and/or
@@ -93,10 +93,21 @@ static const BxExtOpcodeInfo_t BxOpcodeGroupAVX128_0f10[2] = {
   /* M */ { BxPrefixSSE, BX_IA_V128_VMOVUPS_VpsWps, BxOpcodeGroupAVX128_0f10M },
 };
 
-static const BxExtOpcodeInfo_t BxOpcodeGroupAVX256_0f10[3] = {
+static const BxExtOpcodeInfo_t BxOpcodeGroupAVX256_0f10R[3] = {
   /* 66 */ { 0, BX_IA_V256_VMOVUPD_VpdWpd },
-  /* F3 */ { 0, BX_IA_ERROR },
-  /* F2 */ { 0, BX_IA_ERROR }
+  /* F3 */ { 0, BX_IA_V128_VMOVSS_VssHpsWss },
+  /* F2 */ { 0, BX_IA_V128_VMOVSD_VsdHpdWsd }
+};
+
+static const BxExtOpcodeInfo_t BxOpcodeGroupAVX256_0f10M[3] = {
+  /* 66 */ { 0, BX_IA_V256_VMOVUPD_VpdWpd },
+  /* F3 */ { 0, BX_IA_V128_VMOVSS_VssWss },
+  /* F2 */ { 0, BX_IA_V128_VMOVSD_VsdWsd }
+};
+
+static const BxExtOpcodeInfo_t BxOpcodeGroupAVX256_0f10[2] = {
+  /* R */ { BxPrefixSSE, BX_IA_V256_VMOVUPS_VpsWps, BxOpcodeGroupAVX256_0f10R },
+  /* M */ { BxPrefixSSE, BX_IA_V256_VMOVUPS_VpsWps, BxOpcodeGroupAVX256_0f10M },
 };
 
 static const BxExtOpcodeInfo_t BxOpcodeGroupAVX128_0f11R[3] = {
@@ -116,10 +127,21 @@ static const BxExtOpcodeInfo_t BxOpcodeGroupAVX128_0f11[2] = {
   /* M */ { BxPrefixSSE, BX_IA_V128_VMOVUPS_WpsVps, BxOpcodeGroupAVX128_0f11M },
 };
 
-static const BxExtOpcodeInfo_t BxOpcodeGroupAVX256_0f11[3] = {
+static const BxExtOpcodeInfo_t BxOpcodeGroupAVX256_0f11R[3] = {
   /* 66 */ { 0, BX_IA_V256_VMOVUPD_WpdVpd },
-  /* F3 */ { 0, BX_IA_ERROR },
-  /* F2 */ { 0, BX_IA_ERROR }
+  /* F3 */ { 0, BX_IA_V128_VMOVSS_WssHpsVss },
+  /* F2 */ { 0, BX_IA_V128_VMOVSD_WsdHpdVsd }
+};
+
+static const BxExtOpcodeInfo_t BxOpcodeGroupAVX256_0f11M[3] = {
+  /* 66 */ { 0, BX_IA_V256_VMOVUPD_WpdVpd },
+  /* F3 */ { 0, BX_IA_V128_VMOVSS_WssVss },
+  /* F2 */ { 0, BX_IA_V128_VMOVSD_WsdVsd }
+};
+
+static const BxExtOpcodeInfo_t BxOpcodeGroupAVX256_0f11[2] = {
+  /* R */ { BxPrefixSSE, BX_IA_V256_VMOVUPS_WpsVps, BxOpcodeGroupAVX256_0f11R },
+  /* M */ { BxPrefixSSE, BX_IA_V256_VMOVUPS_WpsVps, BxOpcodeGroupAVX256_0f11M },
 };
 
 static const BxExtOpcodeInfo_t BxOpcodeGroupAVX128_0f12[3] = {
@@ -542,9 +564,9 @@ static const BxExtOpcodeInfo_t BxOpcodeTableAVX[256*3*2] = {
   /* 0F /0 */ { 0, BX_IA_ERROR },
   /* 0F /1 */ { 0, BX_IA_ERROR },
   /* 10 /0 */ { BxSplitMod11B, BX_IA_ERROR, BxOpcodeGroupAVX128_0f10 }, // split because of VMOVSS/VMOVSD encoding issue
-  /* 10 /1 */ { BxPrefixSSE, BX_IA_V256_VMOVUPS_VpsWps, BxOpcodeGroupAVX256_0f10 },
+  /* 10 /1 */ { BxSplitMod11B, BX_IA_ERROR, BxOpcodeGroupAVX256_0f10 }, // split because of VMOVSS/VMOVSD encoding issue
   /* 11 /0 */ { BxSplitMod11B, BX_IA_ERROR, BxOpcodeGroupAVX128_0f11 }, // split because of VMOVSS/VMOVSD encoding issue
-  /* 11 /1 */ { BxPrefixSSE, BX_IA_V256_VMOVUPS_WpsVps, BxOpcodeGroupAVX256_0f11 },
+  /* 11 /1 */ { BxSplitMod11B, BX_IA_ERROR, BxOpcodeGroupAVX256_0f11 }, // split because of VMOVSS/VMOVSD encoding issue
   /* 12 /0 */ { BxPrefixSSE, BX_IA_V128_VMOVLPS_VpsHpsMq, BxOpcodeGroupAVX128_0f12 },
   /* 12 /1 */ { BxPrefixSSE, BX_IA_ERROR, BxOpcodeGroupAVX256_0f12 },
   /* 13 /0 */ { BxPrefixSSE2, BX_IA_ERROR, BxOpcodeGroupAVX128_0f13M },
@@ -1437,8 +1459,8 @@ static const BxExtOpcodeInfo_t BxOpcodeTableAVX[256*3*2] = {
   /* CD /1 */ { 0, BX_IA_ERROR },
   /* CE /0 */ { 0, BX_IA_ERROR },
   /* CE /1 */ { 0, BX_IA_ERROR },
-  /* CF /0 */ { 0, BX_IA_ERROR },
-  /* CF /1 */ { 0, BX_IA_ERROR },
+  /* CF /0 */ { BxPrefixSSE66 | BxVexW0, BX_IA_VGF2P8MULB_VdqHdqWdq },
+  /* CF /1 */ { BxPrefixSSE66 | BxVexW0, BX_IA_VGF2P8MULB_VdqHdqWdq },
   /* D0 /0 */ { 0, BX_IA_ERROR },
   /* D0 /1 */ { 0, BX_IA_ERROR },
   /* D1 /0 */ { 0, BX_IA_ERROR },
@@ -1464,13 +1486,13 @@ static const BxExtOpcodeInfo_t BxOpcodeTableAVX[256*3*2] = {
   /* DB /0 */ { BxPrefixSSE66, BX_IA_V128_VAESIMC_VdqWdq },
   /* DB /1 */ { 0, BX_IA_ERROR },
   /* DC /0 */ { BxPrefixSSE66, BX_IA_V128_VAESENC_VdqHdqWdq },
-  /* DC /1 */ { 0, BX_IA_ERROR },
+  /* DC /1 */ { BxPrefixSSE66, BX_IA_V256_VAESENC_VdqHdqWdq },
   /* DD /0 */ { BxPrefixSSE66, BX_IA_V128_VAESENCLAST_VdqHdqWdq },
-  /* DD /1 */ { 0, BX_IA_ERROR },
+  /* DD /1 */ { BxPrefixSSE66, BX_IA_V256_VAESENCLAST_VdqHdqWdq },
   /* DE /0 */ { BxPrefixSSE66, BX_IA_V128_VAESDEC_VdqHdqWdq },
-  /* DE /1 */ { 0, BX_IA_ERROR },
+  /* DE /1 */ { BxPrefixSSE66, BX_IA_V256_VAESDEC_VdqHdqWdq },
   /* DF /0 */ { BxPrefixSSE66, BX_IA_V128_VAESDECLAST_VdqHdqWdq },
-  /* DF /1 */ { 0, BX_IA_ERROR },
+  /* DF /1 */ { BxPrefixSSE66, BX_IA_V256_VAESDECLAST_VdqHdqWdq },
   /* E0 /0 */ { 0, BX_IA_ERROR },
   /* E0 /1 */ { 0, BX_IA_ERROR },
   /* E1 /0 */ { 0, BX_IA_ERROR },
@@ -1674,7 +1696,7 @@ static const BxExtOpcodeInfo_t BxOpcodeTableAVX[256*3*2] = {
   /* 43 /0 */ { 0, BX_IA_ERROR },
   /* 43 /1 */ { 0, BX_IA_ERROR },
   /* 44 /0 */ { BxPrefixSSE66 | BxImmediate_Ib, BX_IA_V128_VPCLMULQDQ_VdqHdqWdqIb },
-  /* 44 /1 */ { 0, BX_IA_ERROR },
+  /* 44 /1 */ { BxPrefixSSE66 | BxImmediate_Ib, BX_IA_V256_VPCLMULQDQ_VdqHdqWdqIb },
   /* 45 /0 */ { 0, BX_IA_ERROR },
   /* 45 /1 */ { 0, BX_IA_ERROR },
   /* 46 /0 */ { 0, BX_IA_ERROR },
@@ -1949,10 +1971,10 @@ static const BxExtOpcodeInfo_t BxOpcodeTableAVX[256*3*2] = {
   /* CC /1 */ { 0, BX_IA_ERROR },
   /* CD /0 */ { 0, BX_IA_ERROR },
   /* CD /1 */ { 0, BX_IA_ERROR },
-  /* CE /0 */ { 0, BX_IA_ERROR },
-  /* CE /1 */ { 0, BX_IA_ERROR },
-  /* CF /0 */ { 0, BX_IA_ERROR },
-  /* CF /1 */ { 0, BX_IA_ERROR },
+  /* CE /0 */ { BxPrefixSSE66 | BxVexW1 | BxImmediate_Ib, BX_IA_VGF2P8AFFINEQB_VdqHdqWdqIb },
+  /* CE /1 */ { BxPrefixSSE66 | BxVexW1 | BxImmediate_Ib, BX_IA_VGF2P8AFFINEQB_VdqHdqWdqIb },
+  /* CF /0 */ { BxPrefixSSE66 | BxVexW1 | BxImmediate_Ib, BX_IA_VGF2P8AFFINEINVQB_VdqHdqWdqIb },
+  /* CF /1 */ { BxPrefixSSE66 | BxVexW1 | BxImmediate_Ib, BX_IA_VGF2P8AFFINEINVQB_VdqHdqWdqIb },
   /* D0 /0 */ { 0, BX_IA_ERROR },
   /* D0 /1 */ { 0, BX_IA_ERROR },
   /* D1 /0 */ { 0, BX_IA_ERROR },

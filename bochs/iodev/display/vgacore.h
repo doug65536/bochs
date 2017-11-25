@@ -45,12 +45,28 @@
 #define X_TILESIZE 16
 #define Y_TILESIZE 24
 
+// Only reference the array if the tile numbers are within the bounds
+// of the array.  If out of bounds, do nothing.
+#define SET_TILE_UPDATED(thisp, xtile, ytile, value)                          \
+  do {                                                                        \
+    if (((xtile) < thisp s.num_x_tiles) && ((ytile) < thisp s.num_y_tiles))   \
+      thisp s.vga_tile_updated[(xtile)+(ytile)* thisp s.num_x_tiles] = value; \
+  } while (0)
+
+// Only reference the array if the tile numbers are within the bounds
+// of the array.  If out of bounds, return 0.
+#define GET_TILE_UPDATED(xtile,ytile)                        \
+  ((((xtile) < s.num_x_tiles) && ((ytile) < s.num_y_tiles))? \
+     s.vga_tile_updated[(xtile)+(ytile)* s.num_x_tiles]      \
+     : 0)
+
 #if BX_SUPPORT_PCI
 class bx_nonvga_device_c : public bx_pci_device_c {
 public:
   virtual void redraw_area(unsigned x0, unsigned y0,
                            unsigned width, unsigned height) {}
   virtual void refresh_display(void *this_ptr, bx_bool redraw) {}
+  virtual void update(void) {}
 };
 #endif
 
@@ -64,7 +80,6 @@ public:
   static bx_bool mem_write_handler(bx_phy_address addr, unsigned len, void *data, void *param);
   virtual Bit8u  mem_read(bx_phy_address addr);
   virtual void   mem_write(bx_phy_address addr, Bit8u value);
-  virtual void   refresh_display(void *this_ptr, bx_bool redraw) {}
   virtual void   set_override(bx_bool enabled, void *dev);
   virtual void   register_state(bx_list_c *parent);
   virtual void   after_restore_state(void);
@@ -72,21 +87,24 @@ public:
   virtual void   debug_dump(void);
 #endif
 
-  virtual void   redraw_area(unsigned x0, unsigned y0,
-                             unsigned width, unsigned height);
-
+  virtual void   vga_redraw_area(unsigned x0, unsigned y0, unsigned width,
+                                 unsigned height);
+  virtual void   redraw_area(unsigned x0, unsigned y0, unsigned width,
+                             unsigned height);
+  virtual void   refresh_display(void *this_ptr, bx_bool redraw);
   virtual void   get_text_snapshot(Bit8u **text_snapshot, unsigned *txHeight,
                                    unsigned *txWidth);
-  virtual void   init_vga_extension(void) {}
+  virtual bx_bool init_vga_extension(void) {return 0;}
+  virtual void   get_crtc_params(Bit32u *htotal, Bit32u *vtotal);
 
-  static void    timer_handler(void *);
-  void           timer(void);
+  static void    vga_timer_handler(void *);
+  static Bit64s  vga_param_handler(bx_param_c *param, int set, Bit64s val);
 
 protected:
   void init_standard_vga(void);
   void init_gui(void);
   void init_iohandlers(bx_read_handler_t f_read, bx_write_handler_t f_write);
-  void init_systemtimer(bx_timer_handler_t f_timer, param_event_handler f_param);
+  void init_systemtimer();
 
   static Bit32u read_handler(void *this_ptr, Bit32u address, unsigned io_len);
   static void   write_handler(void *this_ptr, Bit32u address, Bit32u value, unsigned io_len);
@@ -95,7 +113,7 @@ protected:
   void   write(Bit32u address, Bit32u value, unsigned io_len, bx_bool no_log);
 
   Bit8u get_vga_pixel(Bit16u x, Bit16u y, Bit16u saddr, Bit16u lc, bx_bool bs, Bit8u **plane);
-  void update(void);
+  virtual void update(void);
   void determine_screen_dimensions(unsigned *piHeight, unsigned *piWidth);
   void calculate_retrace_timing(void);
   bx_bool skip_update(void);
@@ -209,6 +227,7 @@ protected:
     bx_bool x_dotclockdiv2;
     bx_bool y_doublescan;
     // h/v retrace timing
+    Bit32u vclk[4];
     Bit32u htotal_usec;
     Bit32u hbstart_usec;
     Bit32u hbend_usec;
@@ -239,8 +258,8 @@ protected:
   } s;  // state information
 
   int timer_id;
-  Bit32u update_interval;
-  bx_bool extension_init;
+  bx_bool realtime;
+  bx_param_string_c *vgaext;
   bx_bool pci_enabled;
 };
 

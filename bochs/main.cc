@@ -855,9 +855,15 @@ int bx_init_main(int argc, char *argv[])
   if (getenv("BXSHARE") != NULL) {
     BX_INFO(("BXSHARE is set to '%s'", getenv("BXSHARE")));
   } else {
+#ifdef WIN32
+    BX_INFO(("BXSHARE not set. using system default '%s'",
+        get_builtin_variable("BXSHARE")));
+    setenv("BXSHARE", get_builtin_variable("BXSHARE"), 1);
+#else
     BX_INFO(("BXSHARE not set. using compile time default '%s'",
         BX_SHARE_PATH));
     setenv("BXSHARE", BX_SHARE_PATH, 1);
+#endif
   }
 #else
   // we don't have getenv or setenv.  Do nothing.
@@ -866,11 +872,6 @@ int bx_init_main(int argc, char *argv[])
   // initialize plugin system. This must happen before we attempt to
   // load any modules.
   plugin_startup();
-#if BX_SUPPORT_PCIUSB
-  // USB HC devices depend on USB core symbols, so we have to load it here.
-  // The devices init() unloads it if not used.
-  PLUG_load_plugin(usb_common, PLUGTYPE_CORE);
-#endif
 
   int norcfile = 1;
 
@@ -1016,10 +1017,12 @@ int bx_begin_simulation(int argc, char *argv[])
 
   bx_init_hardware();
 
+#if BX_LOAD32BITOSHACK
   if (SIM->get_param_enum(BXPN_LOAD32BITOS_WHICH)->get()) {
     void bx_load32bitOSimagehack(void);
     bx_load32bitOSimagehack();
   }
+#endif
 
   SIM->set_init_done(1);
 
