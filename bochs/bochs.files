@@ -1,3 +1,4 @@
+bx_debug/dbg_breakpoints.cc
 ./bochs.h
 ./ltdl-bochs.h
 ./aclocal.m4
