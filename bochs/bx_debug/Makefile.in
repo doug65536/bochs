@@ -95,7 +95,7 @@ parse-clean:
 
 dbg_main.o: debug.h
 
-@NO_FLEX_YACC@parser.c: parser.y
+@NO_FLEX_YACC@parser.c parser.h: parser.y
 @NO_FLEX_YACC@	@/bin/rm -f y.tab.c parser.c
 @NO_FLEX_YACC@	@/bin/rm -f y.tab.h parser.h
 @NO_FLEX_YACC@	$(YACC) -p bx -d $<
