@@ -250,7 +250,8 @@ const char* bx_dbg_symbolic_address(bx_address context, bx_address xip, bx_addre
     snprintf (buf, 80, "no symbol");
     return buf;
   }
-  snprintf (buf, 80, "%s+%x", entr->name, (base+xip) - entr->start);
+  snprintf (buf, 80, "%s+" FMT_ADDRX,
+            entr->name, (base+xip) - entr->start);
   return buf;
 }
 
