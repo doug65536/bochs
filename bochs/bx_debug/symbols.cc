@@ -257,20 +257,21 @@ const char* bx_dbg_symbolic_address(bx_address context, bx_address xip, bx_addre
 
 const char* bx_dbg_disasm_symbolic_address(bx_address xip, bx_address base)
 {
-  static char buf[80];
+  static char buf[256];
 
   // Try global context
   context_t* cntx = context_t::get_context(0);
-  if (!cntx) {
+  if (!cntx)
     return 0;
-  }
 
   // full linear address not only xip (for nonzero based segments)
   symbol_entry_t* entr = cntx->get_symbol_entry(base+xip);
-  if (!entr) {
+  if (!entr)
     return 0;
-  }
-  snprintf (buf, 80, "%s+%" FMT_64 "x", entr->name, (base+xip) - entr->start);
+
+  snprintf(buf, sizeof(buf), "%s+%" FMT_64 "x",
+    entr->name, (base+xip) - entr->start);
+
   return buf;
 }
 
