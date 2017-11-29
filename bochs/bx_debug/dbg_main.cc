@@ -1114,41 +1114,30 @@ void bx_dbg_info_segment_regs_command(void)
       global_sreg.base, (unsigned) global_sreg.limit);
 }
 
-void bx_dbg_info_registers_command_output_32(int reg_num)
-{
-
-}
-
-
 static void bx_dbg_info_registers_command_output_64(
-    int reg_num, int symbolic)
+    char const *name, uint64_t value, int symbolic)
 {
-  bx_address reg_val = BX_CPU(dbg_cpu)->get_reg64(reg_num);
   const char *sym = symbolic
-      ? bx_dbg_disasm_symbolic_address(reg_val, 0)
+      ? bx_dbg_disasm_symbolic_address(value, 0)
       : 0;
   const char *sym_prefix = sym ? " (" : "";
   const char *sym_suffix = sym ? ")" : "";
   sym = sym ? sym : "";
   dbg_printf("%3s: %08x_%08x%s%s%s\n",
-             intel_general_64bit_regname[reg_num],
-             GET32H(reg_val), GET32L(reg_val),
-             sym_prefix, sym, sym_suffix);
+    name, GET32H(value), GET32L(value), sym_prefix, sym, sym_suffix);
 }
 
 static void bx_dbg_info_registers_command_output_32(
-    int reg_num, int symbolic)
+    char const *name, uint32_t value, int symbolic)
 {
-  bx_address reg_val = BX_CPU(dbg_cpu)->get_reg32(reg_num);
   const char *sym = symbolic
-      ? bx_dbg_disasm_symbolic_address(reg_val, 0)
+      ? bx_dbg_disasm_symbolic_address(value, 0)
       : 0;
   const char *sym_prefix = sym ? " (" : "";
   sym = sym ? sym : "";
   const char *sym_suffix = sym ? ")" : "";
   dbg_printf("%3s: %08x%s%s%s\n",
-             intel_general_32bit_regname[reg_num],
-             reg_val, sym_prefix, sym, sym_suffix);
+    name, value, sym_prefix, sym, sym_suffix);
 }
 
 
@@ -1160,16 +1149,22 @@ void bx_dbg_info_registers_command(int which_regs_mask)
 #if BX_SUPPORT_SMP
     dbg_printf("CPU%d:\n", BX_CPU(dbg_cpu)->bx_cpuid);
 #endif
-#if BX_SUPPORT_X86_64 == 0
-    for (int r = 0; r < 8; ++r)
-      bx_dbg_info_registers_command_output_32(r, 1);
-    reg = bx_dbg_get_eip();
-    dbg_printf("eip: 0x%08x\n", (unsigned) reg);
+#if BX_SUPPORT_X86_64
+    for (int r = 0; r < 16; ++r) {
+      bx_dbg_info_registers_command_output_64(
+        intel_general_64bit_regname[r],
+        BX_CPU(dbg_cpu)->get_reg64(r), 1);
+    }
+    bx_dbg_info_registers_command_output_64(
+      "rip", bx_dbg_get_rip(), 1);
 #else
-    for (int r = 0; r < 16; ++r)
-      bx_dbg_info_registers_command_output_64(r, 1);
-    reg = bx_dbg_get_rip();
-    dbg_printf("rip: %08x_%08x\n", GET32H(reg), GET32L(reg));
+    for (int r = 0; r < 8; ++r) {
+      bx_dbg_info_registers_command_output_32(
+        intel_general_32bit_regname[r],
+          BX_CPU(dbg_cpu)->get_reg32(r), 1);
+    }
+    bx_dbg_info_registers_command_output_64(
+      "eip", bx_dbg_get_eip(), 1);
 #endif
     reg = BX_CPU(dbg_cpu)->read_eflags();
     dbg_printf("eflags 0x%08x: ", (unsigned) reg);
