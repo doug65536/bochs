@@ -104,7 +104,7 @@ dbg_main.o: debug.h
 @NO_FLEX_YACC@	@echo '#endif  /* if BX_DEBUGGER */' >> parser.c
 @NO_FLEX_YACC@	@echo '/* The #endif is appended by the makefile after running yacc. */' >> parser.c
 
-@NO_FLEX_YACC@lexer.c: lexer.l
+@NO_FLEX_YACC@lexer.c: lexer.l parser.h parser.c
 @NO_FLEX_YACC@	$(LEX) -Pbx -t $< > lexer.c
 
 ###########################################
