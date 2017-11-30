@@ -95,12 +95,14 @@ void BX_CPU_C::cpu_loop(void)
     for(;;) {
 
 #if BX_DEBUGGER
-      if (BX_CPU_THIS_PTR profile)
+      if (unlikely(BX_CPU_THIS_PTR profile))
         bx_dbg_profile_insn(prev_rip);
 
       if (unlikely(BX_CPU_THIS_PTR trace == 1)) {
+        // full trace
         debug_disasm_instruction(BX_CPU_THIS_PTR prev_rip);
       } else if (unlikely(BX_CPU_THIS_PTR trace == 2)) {
+        // ram trace
         if (!BX_CPU_THIS_PTR real_mode() ||
            BX_CPU_THIS_PTR sregs[BX_SEG_REG_CS].selector.value < 0xC000) {
           debug_disasm_instruction(BX_CPU_THIS_PTR prev_rip);
