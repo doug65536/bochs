@@ -1126,13 +1126,13 @@ help_command:
        }
      | BX_TOKEN_HELP BX_TOKEN_PROFILE '\n'
        {
-         dbg_printf("profile all - start profiling on all CPUs");
-         dbg_printf("profile none - stop profiling on all CPUs");
+         dbg_printf("profile all - start profiling on all CPUs\n");
+         dbg_printf("profile none - stop profiling on all CPUs\n");
          dbg_printf("profile on - start profiling on the current CPU\n");
          dbg_printf("profile off - stop profiling on the current CPU\n");
-         dbg_printf("profile reset - Clear profile counts to zero");
+         dbg_printf("profile reset - Clear profile counts to zero\n");
          dbg_printf("profile show - show summary profile by function\n");
-         dbg_printf("profile detail - start verbose profile results");
+         dbg_printf("profile detail - start verbose profile results\n");
          free($1);free($2);
        }
      | BX_TOKEN_HELP BX_TOKEN_RESTORE '\n'
