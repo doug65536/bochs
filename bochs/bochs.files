@@ -1,7 +1,7 @@
-bx_debug/dbg_breakpoints.cc
 ./bochs.h
 ./ltdl-bochs.h
 ./aclocal.m4
+./bochs.config
 ./.conf.win32-vcpp
 ./logio.cc
 ./TESTFORM.txt
@@ -36,12 +36,14 @@ bx_debug/dbg_breakpoints.cc
 ./README-plugins
 ./qemu-queue.h
 ./ltmain.sh
+./config.h
 ./osdep.cc
 ./.bochsrc
 ./.conf.linux
 ./bxversion.h.in
 ./configure.in
 ./README.rfb
+./bxthread.h
 ./TODO
 ./install-sh
 ./bxversion.rc.in
@@ -119,7 +121,8 @@ bx_debug/dbg_breakpoints.cc
 ./cpu/shift8.cc
 ./cpu/sha.cc
 ./cpu/crregs.cc
-./cpu/avx/avx512_conflict.cc
+./cpu/avx/avx512_bitalg.cc
+./cpu/avx/avx512_vnni.cc
 ./cpu/avx/avx512_cvt.cc
 ./cpu/avx/avx512_mask64.cc
 ./cpu/avx/avx512_fma.cc
@@ -189,11 +192,13 @@ bx_debug/dbg_breakpoints.cc
 ./cpu/cpudb/intel/pentium.h
 ./cpu/cpudb/intel/p3_katmai.h
 ./cpu/cpudb/intel/broadwell_ult.txt
+./cpu/cpudb/intel/corei7_skylake-x.h
 ./cpu/cpudb/intel/core_duo_t2400_yonah.txt
 ./cpu/cpudb/intel/p4_prescott_celeron_336.cc
 ./cpu/cpudb/intel/pentium_mmx.h
 ./cpu/cpudb/intel/core_duo_t2400_yonah.h
 ./cpu/cpudb/intel/corei5_arrandale_m520.txt
+./cpu/cpudb/intel/corei7_skylake-x.txt
 ./cpu/cpudb/intel/core2_penryn_t9600.h
 ./cpu/cpudb/intel/core2_penryn_t9600.txt
 ./cpu/cpudb/intel/corei7_haswell_4770.txt
@@ -215,6 +220,7 @@ bx_debug/dbg_breakpoints.cc
 ./cpu/cpudb/intel/pentium_mmx.cc
 ./cpu/cpudb/intel/atom_n270.cc
 ./cpu/cpudb/intel/p4_willamette.cc
+./cpu/cpudb/intel/corei7_skylake-x.cc
 ./cpu/cpudb/intel/core_duo_t2400_yonah.cc
 ./cpu/cpudb/intel/p2_klamath.cc
 ./cpu/cpudb/intel/broadwell_ult.cc
@@ -243,12 +249,14 @@ bx_debug/dbg_breakpoints.cc
 ./cpu/vmx.cc
 ./cpu/shift32.cc
 ./cpu/sse_move.cc
+./cpu/gf2.cc
 ./cpu/string.cc
 ./cpu/decoder/fetchdecode_xop.h
 ./cpu/decoder/fetchdecode32.cc
 ./cpu/decoder/fetchdecode.h
 ./cpu/decoder/instr.h
 ./cpu/decoder/fetchdecode_opmap_0f3a.h
+./cpu/decoder/ia_opcodes.def
 ./cpu/decoder/fetchdecode_opmap.h
 ./cpu/decoder/disasm.cc
 ./cpu/decoder/fetchdecode_evex.h
@@ -334,6 +342,8 @@ bx_debug/dbg_breakpoints.cc
 ./win32res.rc
 ./msrs.def
 ./main.cc
+./bxthread.cc
+./bxdisasm.cc
 ./gdbstub.cc
 ./pc_system.cc
 ./host/linux/pcidev/Makefile.in
@@ -343,6 +353,7 @@ bx_debug/dbg_breakpoints.cc
 ./configure
 ./ltdlconf.h.in
 ./.conf.sparc
+./bx_debug/dbg_breakpoints.cc
 ./bx_debug/symbols.cc
 ./bx_debug/debug.h
 ./bx_debug/lexer.l
@@ -350,7 +361,6 @@ bx_debug/dbg_breakpoints.cc
 ./bx_debug/linux.cc
 ./bx_debug/parser.y
 ./bx_debug/make-syscalls-linux.pl
-./bx_debug/parser.h
 ./bx_debug/syscalls-linux.h
 ./bx_debug/dbg_main.cc
 ./disasm/dis_tables_x87.inc
@@ -463,7 +473,9 @@ bx_debug/dbg_breakpoints.cc
 ./gui/keymaps/x11-pc-uk.map
 ./gui/keymaps/sdl2-pc-us.map
 ./gui/keymaps/x11-pc-es.map
+./bochs.creator.user
 ./README-wxWidgets
+./bochs.creator
 ./bochs.files
 ./.conf.amigaos
 ./cpudb.h
@@ -499,6 +511,7 @@ bx_debug/dbg_breakpoints.cc
 ./iodev/pic.cc
 ./iodev/pcidev.h
 ./iodev/pci2isa.cc
+./iodev/hpet.cc
 ./iodev/iodebug.cc
 ./iodev/dma.cc
 ./iodev/unmapped.cc
@@ -571,8 +584,8 @@ bx_debug/dbg_breakpoints.cc
 ./iodev/parallel.h
 ./iodev/busmouse.h
 ./iodev/display/voodoo.h
+./iodev/display/bitblt.h
 ./iodev/display/Makefile.in
-./iodev/display/voodoo_raster.h
 ./iodev/display/vga.h
 ./iodev/display/voodoo_types.h
 ./iodev/display/vgacore.h
@@ -660,6 +673,7 @@ bx_debug/dbg_breakpoints.cc
 ./iodev/pit.h
 ./iodev/devices.txt
 ./iodev/harddrv.h
+./iodev/hpet.h
 ./iodev/serial_raw.cc
 ./iodev/cmos.h
 ./iodev/ioapic.cc
@@ -707,6 +721,7 @@ bx_debug/dbg_breakpoints.cc
 ./docs-html/bxdebugger.html
 ./docs-html/random.txt
 ./docs-html/enh_dbg_user_man.txt
+./bochs.includes
 ./build/win32/bochs.manifest
 ./build/win32/diffcc2cpp
 ./build/win32/cc2cpp
