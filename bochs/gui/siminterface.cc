@@ -19,7 +19,7 @@
 //  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 //
 /////////////////////////////////////////////////////////////////////////
-  
+
 // See siminterface.h for description of the siminterface concept.
 // Basically, the siminterface is visible from both the simulator and
 // the configuration user interface, and allows them to talk to each other.
@@ -1599,7 +1599,7 @@ int bx_real_sim_c::bx_printf(const char *fmt, ...)
       return bx_gui->bx_printf(buf);
     }
   }
-  return printf(buf);
+  return printf("%s", buf);
 }
 
 char* bx_real_sim_c::bx_gets(char *s, int size, FILE *stream)
