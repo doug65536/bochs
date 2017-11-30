@@ -2081,10 +2081,13 @@ one_more:
         if (found || (reason != STOP_NO_REASON && reason != STOP_CPU_HALTED)) {
           stop = 1;
           which = cpu;
+          break;
         }
+        // <not anymore!>
         // even if stop==1, finish cycling through all processors.
         // "which" remembers which cpu set the stop flag.  If multiple
         // cpus set stop, too bad.
+        // </not anymore!>
       }
 
       // Potential deadlock if all processors are halted.  Then
