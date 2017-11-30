@@ -206,7 +206,7 @@ command:
     | calc_command
     | if_command
     | expression { eval_value = $1; }
-    | 
+    |
     | '\n'
       {
       }
@@ -1122,6 +1122,17 @@ help_command:
        {
          dbg_printf("trace-mem on  - print all memory accesses occured during instruction execution\n");
          dbg_printf("trace-mem off - disable memory accesses tracing\n");
+         free($1);free($2);
+       }
+     | BX_TOKEN_HELP BX_TOKEN_PROFILE '\n'
+       {
+         dbg_printf("profile all - start profiling on all CPUs");
+         dbg_printf("profile none - stop profiling on all CPUs");
+         dbg_printf("profile on - start profiling on the current CPU\n");
+         dbg_printf("profile off - stop profiling on the current CPU\n");
+         dbg_printf("profile reset - Clear profile counts to zero");
+         dbg_printf("profile show - show summary profile by function\n");
+         dbg_printf("profile detail - start verbose profile results");
          free($1);free($2);
        }
      | BX_TOKEN_HELP BX_TOKEN_RESTORE '\n'
