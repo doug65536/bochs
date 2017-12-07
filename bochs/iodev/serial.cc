@@ -87,21 +87,34 @@ void serial_init_options(void)
     sprintf(label, "Serial Port %d", i+1);
     bx_list_c *menu = new bx_list_c(serial, name, label);
     menu->set_options(menu->SERIES_ASK);
+
     sprintf(label, "Enable serial port #%d (COM%d)", i+1, i+1);
     sprintf(descr, "Controls whether COM%d is installed or not", i+1);
-    bx_param_bool_c *enabled = new bx_param_bool_c(menu, "enabled", label, descr,
-      (i==0)?1 : 0);  // only enable the first by default
+    bx_param_bool_c *enabled = new bx_param_bool_c(
+                menu, "enabled", label, descr, i == 0);
+
+    sprintf(label, "Turbo speed enabled for COM%d", i+1);
+    sprintf(descr, "Enable 8 megabit/sec speed for COM%d,"
+                   " regardless of baud setting", i+1);
+    bx_param_bool_c *turbo = new bx_param_bool_c(
+                menu, "turbo", label, descr, 0);
+
     sprintf(label, "I/O mode of the serial device for COM%d", i+1);
     bx_param_enum_c *mode = new bx_param_enum_c(menu, "mode", label,
-      "The mode can be one these: 'null', 'file', 'term', 'raw', 'mouse', 'socket*', 'pipe*'",
+      "The mode can be one these: 'null', 'file',"
+      " 'term', 'raw', 'mouse', 'socket*', 'pipe*'",
       serial_mode_list, BX_SER_MODE_NULL, BX_SER_MODE_NULL);
+
     mode->set_ask_format("Choose I/O mode of the serial device [%s] ");
+
     sprintf(label, "Pathname of the serial device for COM%d", i+1);
-    bx_param_filename_c *path = new bx_param_filename_c(menu, "dev", label, 
+    bx_param_filename_c *path = new bx_param_filename_c(menu, "dev", label,
       "The path can be a real serial device or a pty (X/Unix only)",
       "", BX_PATHNAME_LEN);
+
     bx_list_c *deplist = new bx_list_c(NULL);
     deplist->add(mode);
+    deplist->add(turbo);
     enabled->set_dependent_list(deplist);
     deplist = new bx_list_c(NULL);
     deplist->add(path);
@@ -111,7 +124,7 @@ void serial_init_options(void)
   }
 }
 
-Bit32s serial_options_parser(const char *context, int num_params, char *params[])
+Bit32s serial_options_parser(const char *context, int num_params, char **params)
 {
   if ((!strncmp(params[0], "com", 3)) && (strlen(params[0]) == 4)) {
     char tmpname[80];
@@ -280,6 +293,7 @@ bx_serial_c::init(void)
       if (i < 2) {
         DEV_register_irq(BX_SER_THIS s[i].IRQ, name);
       }
+
       /* internal state */
       BX_SER_THIS s[i].ls_ipending = 0;
       BX_SER_THIS s[i].ms_ipending = 0;
@@ -369,6 +383,13 @@ bx_serial_c::init(void)
 
       BX_SER_THIS s[i].baudrate = 115200;
       BX_SER_THIS s[i].databyte_usec = 87;
+
+      BX_SER_THIS s[i].turbo = SIM->get_param_bool("turbo", base)->get();
+
+      if (BX_SER_THIS s[i].turbo) {
+          BX_SER_THIS s[i].databyte_usec = 1;
+          BX_INFO(("com%d turbo speed enabled (10 Mbps)", i + 1));
+      }
 
       for (unsigned addr = ports[i]; addr < (unsigned)(ports[i] + 8); addr++) {
         BX_DEBUG(("com%d initialize register for read/write: 0x%04x", i + 1, addr));
@@ -563,7 +584,7 @@ bx_serial_c::init(void)
           } else {
             // client mode
             pipe = CreateFile( dev,
-               GENERIC_READ | GENERIC_WRITE, 
+               GENERIC_READ | GENERIC_WRITE,
                0, NULL, OPEN_EXISTING, 0, NULL);
 
             if (pipe == INVALID_HANDLE_VALUE) {
@@ -1219,8 +1240,11 @@ void bx_serial_c::write(Bit32u address, Bit32u value, unsigned io_len)
       if (restart_timer) {
         // Start the receive polling process if not already started
         // and there is a valid baudrate.
-        BX_SER_THIS s[port].databyte_usec = (Bit32u)(1000000.0 / BX_SER_THIS s[port].baudrate *
-                                                     (BX_SER_THIS s[port].line_cntl.wordlen_sel + 7));
+        if (!BX_SER_THIS s[port].turbo) {
+            BX_SER_THIS s[port].databyte_usec = (Bit32u)(
+                        1000000.0 / BX_SER_THIS s[port].baudrate *
+                        (BX_SER_THIS s[port].line_cntl.wordlen_sel + 7));
+        }
         bx_pc_system.activate_timer(BX_SER_THIS s[port].rx_timer_index,
                                     BX_SER_THIS s[port].databyte_usec,
                                     0); /* not continuous */
