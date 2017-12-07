@@ -3375,10 +3375,73 @@ void bx_dbg_info_ivt_command(unsigned from, unsigned to)
     dbg_printf("cpu in protected mode, use info idt\n");
 }
 
-static void bx_dbg_print_tss(Bit8u *tss, int len)
+static void bx_dbg_print_tss_64(Bit8u *tss, int len)
+{
+  if (len < 104) {
+    dbg_printf("Invalid tss length (limit must be greater than 103)\n");
+    return;
+  }
+
+  Bit32u *in = (Bit32u*)tss;
+
+  Bit32u lo, hi;
+  char const *sym;
+
+  lo = *in++;
+  dbg_printf("(0x%04x):   Reserved:         0x%08x%s\n",
+             (Bit32u)((Bit64u)in - (Bit64u)tss - sizeof(Bit32u)),
+             lo, lo ? " (should be zero!)" : "");
+
+  for (int rspn = 0; rspn < 3; ++rspn) {
+    lo = *in++;
+    hi = *in++;
+    sym = bx_dbg_disasm_symbolic_address(((Bit64u)hi << 32) | lo, 0);
+
+    dbg_printf("(0x%04x):       RSP%d: 0x%08x%08x (%s)\n",
+               (Bit32u)((Bit64u)in - (Bit64u)tss - sizeof(Bit64u)),
+               rspn, hi, lo, sym ? sym : "<unknown>");
+  }
+
+  for (int i = 0; i < 2; ++i) {
+    lo = *in++;
+    dbg_printf("(0x%04x):   Reserved:         0x%08x%s\n",
+               (Bit32u)((Bit64u)in - (Bit64u)tss - sizeof(Bit32u)),
+               lo, lo ? " (should be zero!)" : "");
+  }
+
+  for (int istn = 1; istn < 8; ++istn) {
+    lo = *in++;
+    hi = *in++;
+    dbg_printf("(0x%04x):       IST%d: 0x%08x%08x (%s)\n",
+               (Bit32u)((Bit64u)in - (Bit64u)tss - sizeof(Bit64u)),
+               istn, hi, lo, sym ? sym : "<unknown>");
+  }
+
+  for (int i = 0; i < 2; ++i) {
+    lo = *in++;
+    dbg_printf("(0x%04x):   Reserved:         0x%08x%s\n",
+               (Bit32u)((Bit64u)in - (Bit64u)tss - sizeof(Bit32u)),
+               lo, lo ? " (should be zero!)" : "");
+  }
+
+  lo = *in;
+  in = (Bit32u*)((Bit16u*)in + 1);
+
+  dbg_printf("(0x%04x):   Reserved:             0x%04x%s\n",
+             (Bit32u)((Bit64u)in - (Bit64u)tss - sizeof(Bit16u)),
+             lo & 0xFFFF, (lo & 0xFFFF) ? " (should be zero!)" : "");
+
+  lo >>= 16;
+
+  dbg_printf("(0x%04x): I/O bitmap:             0x%04x\n",
+             (Bit32u)((Bit64u)in - (Bit64u)tss),
+             lo & 0xFFFF);
+}
+
+static void bx_dbg_print_tss_32(Bit8u *tss, int len)
 {
   if (len<104) {
-    dbg_printf("Invalid tss length (limit must be greater then 103)\n");
+    dbg_printf("Invalid tss length (limit must be greater than 103)\n");
     return;
   }
 
@@ -3423,7 +3486,10 @@ void bx_dbg_info_tss_command(void)
 
   bx_phy_address paddr = 0;
   if (BX_CPU(dbg_cpu)->dbg_xlate_linear2phy(base, &paddr)) {
-    bx_dbg_print_tss(BX_MEM(0)->get_vector(paddr), len);
+    if (BX_CPU(dbg_cpu)->long_mode())
+      bx_dbg_print_tss_64(BX_MEM(0)->get_vector(paddr), len);
+    else
+      bx_dbg_print_tss_32(BX_MEM(0)->get_vector(paddr), len);
   }
   else {
     dbg_printf("bx_dbg_info_tss_command: failed to get physical address for TSS.BASE !");
