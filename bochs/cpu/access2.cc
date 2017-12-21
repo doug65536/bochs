@@ -778,6 +778,7 @@ BX_CPU_C::write_RMW_linear_byte(Bit8u val8)
 
   if (BX_CPU_THIS_PTR address_xlation.pages > 2) {
     // Pages > 2 means it stores a host address for direct access.
+    bx_mem.check_monitor(address_xlation.paddress1, 1);
     Bit8u *hostAddr = (Bit8u *) BX_CPU_THIS_PTR address_xlation.pages;
     *hostAddr = val8;
   }
@@ -792,6 +793,7 @@ BX_CPU_C::write_RMW_linear_word(Bit16u val16)
 {
   if (BX_CPU_THIS_PTR address_xlation.pages > 2) {
     // Pages > 2 means it stores a host address for direct access.
+    bx_mem.check_monitor(address_xlation.paddress1, 2);
     Bit16u *hostAddr = (Bit16u *) BX_CPU_THIS_PTR address_xlation.pages;
     WriteHostWordToLittleEndian(hostAddr, val16);
     BX_DBG_PHY_MEMORY_ACCESS(BX_CPU_ID,
@@ -832,6 +834,7 @@ BX_CPU_C::write_RMW_linear_dword(Bit32u val32)
 {
   if (BX_CPU_THIS_PTR address_xlation.pages > 2) {
     // Pages > 2 means it stores a host address for direct access.
+    bx_mem.check_monitor(address_xlation.paddress1, 4);
     Bit32u *hostAddr = (Bit32u *) BX_CPU_THIS_PTR address_xlation.pages;
     WriteHostDWordToLittleEndian(hostAddr, val32);
     BX_DBG_PHY_MEMORY_ACCESS(BX_CPU_ID,
@@ -882,6 +885,7 @@ BX_CPU_C::write_RMW_linear_qword(Bit64u val64)
 {
   if (BX_CPU_THIS_PTR address_xlation.pages > 2) {
     // Pages > 2 means it stores a host address for direct access.
+    bx_mem.check_monitor(address_xlation.paddress1, 4);
     Bit64u *hostAddr = (Bit64u *) BX_CPU_THIS_PTR address_xlation.pages;
     WriteHostQWordToLittleEndian(hostAddr, val64);
     BX_DBG_PHY_MEMORY_ACCESS(BX_CPU_ID,
