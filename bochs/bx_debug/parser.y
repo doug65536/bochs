@@ -1371,7 +1371,7 @@ if_command:
 /* Arithmetic expression for vbreak command */
 vexpression:
      BX_TOKEN_NUMERIC                { $$ = $1; }
-   | BX_TOKEN_STRING                 { $$ = bx_dbg_get_symbol_value($1); free($1);}
+   | generic_string                  { $$ = bx_dbg_get_symbol_value($1); free($1);}
    | BX_TOKEN_8BL_REG                { $$ = bx_dbg_get_reg8l_value($1); }
    | BX_TOKEN_8BH_REG                { $$ = bx_dbg_get_reg8h_value($1); }
    | BX_TOKEN_16B_REG                { $$ = bx_dbg_get_reg16_value($1); }
@@ -1400,7 +1400,7 @@ vexpression:
 +   operators - used in most commands */
 expression:
      BX_TOKEN_NUMERIC                { $$ = $1; }
-   | BX_TOKEN_STRING                 { $$ = bx_dbg_get_symbol_value($1); free($1);}
+   | generic_string                  { $$ = bx_dbg_get_symbol_value($1); free($1);}
    | BX_TOKEN_8BL_REG                { $$ = bx_dbg_get_reg8l_value($1); }
    | BX_TOKEN_8BH_REG                { $$ = bx_dbg_get_reg8h_value($1); }
    | BX_TOKEN_16B_REG                { $$ = bx_dbg_get_reg16_value($1); }
