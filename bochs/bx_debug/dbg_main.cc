@@ -1566,14 +1566,24 @@ static void dbg_print_guard_found(unsigned cpu_mode, Bit32u cs, bx_address eip, 
 void bx_dbg_xlate_address(bx_lin_address laddr)
 {
   bx_phy_address paddr;
-  laddr &= BX_CONST64(0xfffffffffffff000);
+
+  // Save page offset
+  unsigned page_ofs = unsigned(laddr & 4095);
+
+  // Round down to page boundary
+  laddr &= -4096;
 
   bx_bool paddr_valid = BX_CPU(dbg_cpu)->dbg_xlate_linear2phy(laddr, &paddr, 1);
   if (paddr_valid) {
-    dbg_printf("linear page 0x" FMT_ADDRX " maps to physical page 0x" FMT_PHY_ADDRX "\n", laddr, paddr);
+    dbg_printf("linear page 0x" FMT_ADDRX
+               " maps to physical page 0x" FMT_PHY_ADDRX "\n", laddr, paddr);
+    dbg_printf("linear address 0x" FMT_ADDRX
+               " maps to physical address 0x" FMT_PHY_ADDRX "\n",
+               laddr + page_ofs, paddr + page_ofs);
   }
   else {
-    dbg_printf("physical address not available for linear 0x" FMT_ADDRX "\n", laddr);
+    dbg_printf("physical address not available"
+               " for linear 0x" FMT_ADDRX "\n", laddr);
   }
 }
 
