@@ -3395,98 +3395,173 @@ void bx_dbg_info_ivt_command(unsigned from, unsigned to)
     dbg_printf("cpu in protected mode, use info idt\n");
 }
 
-static void bx_dbg_print_tss_64(Bit8u *tss, int len)
+template<typename T>
+static T bx_dbg_read_linear_inc(unsigned which_cpu, bx_address &laddr_ptr)
+{
+  T value = 0;
+  bx_dbg_read_linear(which_cpu, laddr_ptr, sizeof(value), (Bit8u*)&value);
+  laddr_ptr += sizeof(value);
+  return value;
+}
+
+static void bx_dbg_print_tss_64(bx_address tss, int len)
 {
   if (len < 104) {
     dbg_printf("Invalid tss length (limit must be greater than 103)\n");
     return;
   }
 
-  Bit32u *in = (Bit32u*)tss;
-
-  Bit32u lo, hi;
+  bx_address ptr = tss;
+  Bit16u word;
+  Bit32u dword;
+  Bit64u qword;
   char const *sym;
 
-  lo = *in++;
+  dword = bx_dbg_read_linear_inc<Bit32u>(dbg_cpu, ptr);
   dbg_printf("(0x%04x):   Reserved:         0x%08x%s\n",
-             (Bit32u)((Bit64u)in - (Bit64u)tss - sizeof(Bit32u)),
-             lo, lo ? " (should be zero!)" : "");
+             (Bit32u)((Bit64u)ptr - (Bit64u)tss),
+             dword, dword ? " (should be zero!)" : "");
 
   for (int rspn = 0; rspn < 3; ++rspn) {
-    lo = *in++;
-    hi = *in++;
-    sym = bx_dbg_disasm_symbolic_address(((Bit64u)hi << 32) | lo, 0);
+    qword = bx_dbg_read_linear_inc<Bit64u>(dbg_cpu, ptr);
+    sym = bx_dbg_disasm_symbolic_address(qword, 0);
 
-    dbg_printf("(0x%04x):       RSP%d: 0x%08x%08x (%s)\n",
-               (Bit32u)((Bit64u)in - (Bit64u)tss - sizeof(Bit64u)),
-               rspn, hi, lo, sym ? sym : "<unknown>");
+    dbg_printf("(0x%04x):       RSP%d: 0x%16" FMT_64 "x (%s)\n",
+               (Bit32u)((Bit64u)ptr - (Bit64u)tss - sizeof(Bit64u)),
+               rspn, qword, sym ? sym : "<unknown>");
   }
 
   for (int i = 0; i < 2; ++i) {
-    lo = *in++;
+    dword = bx_dbg_read_linear_inc<Bit32u>(dbg_cpu, ptr);
     dbg_printf("(0x%04x):   Reserved:         0x%08x%s\n",
-               (Bit32u)((Bit64u)in - (Bit64u)tss - sizeof(Bit32u)),
-               lo, lo ? " (should be zero!)" : "");
+               (Bit32u)((Bit64u)ptr - (Bit64u)tss - sizeof(Bit32u)),
+               dword, dword ? " (should be zero!)" : "");
   }
 
   for (int istn = 1; istn < 8; ++istn) {
-    lo = *in++;
-    hi = *in++;
-    dbg_printf("(0x%04x):       IST%d: 0x%08x%08x (%s)\n",
-               (Bit32u)((Bit64u)in - (Bit64u)tss - sizeof(Bit64u)),
-               istn, hi, lo, sym ? sym : "<unknown>");
+    qword = bx_dbg_read_linear_inc<Bit64u>(dbg_cpu, ptr);
+    dbg_printf("(0x%04x):       IST%d: 0x%016" FMT_64 "x (%s)\n",
+               (Bit32u)((Bit64u)ptr - (Bit64u)tss - sizeof(Bit64u)),
+               istn, qword, sym ? sym : "<unknown>");
   }
 
   for (int i = 0; i < 2; ++i) {
-    lo = *in++;
+    dword = bx_dbg_read_linear_inc<Bit32u>(dbg_cpu, ptr);
     dbg_printf("(0x%04x):   Reserved:         0x%08x%s\n",
-               (Bit32u)((Bit64u)in - (Bit64u)tss - sizeof(Bit32u)),
-               lo, lo ? " (should be zero!)" : "");
+               (Bit32u)((Bit64u)ptr - (Bit64u)tss - sizeof(Bit32u)),
+               dword, dword ? " (should be zero!)" : "");
   }
 
-  lo = *in;
-  in = (Bit32u*)((Bit16u*)in + 1);
+  word = bx_dbg_read_linear_inc<Bit16u>(dbg_cpu, ptr);
 
   dbg_printf("(0x%04x):   Reserved:             0x%04x%s\n",
-             (Bit32u)((Bit64u)in - (Bit64u)tss - sizeof(Bit16u)),
-             lo & 0xFFFF, (lo & 0xFFFF) ? " (should be zero!)" : "");
+             (Bit32u)((Bit64u)ptr - (Bit64u)tss - sizeof(Bit16u)),
+             word, word ? " (should be zero!)" : "");
 
-  lo >>= 16;
+  word = bx_dbg_read_linear_inc<Bit16u>(dbg_cpu, ptr);
 
   dbg_printf("(0x%04x): I/O bitmap:             0x%04x\n",
-             (Bit32u)((Bit64u)in - (Bit64u)tss),
-             lo & 0xFFFF);
+             (Bit32u)((Bit64u)ptr - (Bit64u)tss),
+             word);
 }
 
-static void bx_dbg_print_tss_32(Bit8u *tss, int len)
+static void bx_dbg_print_tss_32(bx_address tss, int len)
 {
   if (len<104) {
     dbg_printf("Invalid tss length (limit must be greater than 103)\n");
     return;
   }
 
-  dbg_printf("ss:esp(0): 0x%04x:0x%08x\n",
-    *(Bit16u*)(tss+8), *(Bit32u*)(tss+4));
-  dbg_printf("ss:esp(1): 0x%04x:0x%08x\n",
-    *(Bit16u*)(tss+0x10), *(Bit32u*)(tss+0xc));
-  dbg_printf("ss:esp(2): 0x%04x:0x%08x\n",
-    *(Bit16u*)(tss+0x18), *(Bit32u*)(tss+0x14));
-  dbg_printf("cr3: 0x%08x\n", *(Bit32u*)(tss+0x1c));
-  dbg_printf("eip: 0x%08x\n", *(Bit32u*)(tss+0x20));
-  dbg_printf("eflags: 0x%08x\n", *(Bit32u*)(tss+0x24));
+  bx_address ptr = tss;
 
-  dbg_printf("cs: 0x%04x ds: 0x%04x ss: 0x%04x\n",
-    *(Bit16u*)(tss+76), *(Bit16u*)(tss+84), *(Bit16u*)(tss+80));
-  dbg_printf("es: 0x%04x fs: 0x%04x gs: 0x%04x\n",
-    *(Bit16u*)(tss+72), *(Bit16u*)(tss+88), *(Bit16u*)(tss+92));
+  Bit16u word;
+  Bit32u dword;
+  Bit64u qword;
 
-  dbg_printf("eax: 0x%08x  ebx: 0x%08x  ecx: 0x%08x  edx: 0x%08x\n",
-    *(Bit32u*)(tss+0x28), *(Bit32u*)(tss+0x34), *(Bit32u*)(tss+0x2c), *(Bit32u*)(tss+0x30));
-  dbg_printf("esi: 0x%08x  edi: 0x%08x  ebp: 0x%08x  esp: 0x%08x\n",
-    *(Bit32u*)(tss+0x40), *(Bit32u*)(tss+0x44), *(Bit32u*)(tss+0x3c), *(Bit32u*)(tss+0x38));
+  word = bx_dbg_read_linear_inc<Bit16u>(dbg_cpu, ptr);
+  dbg_printf("(0x%04x): %10s: 0x%0*x%s\n",
+             (Bit32u)((Bit64u)ptr - (Bit64u)tss - 2),
+             "prev_task", 4, word, "");
 
-  dbg_printf("ldt: 0x%04x\n", *(Bit16u*)(tss+0x60));
-  dbg_printf("i/o map: 0x%04x\n", *(Bit16u*)(tss+0x66));
+  word = bx_dbg_read_linear_inc<Bit16u>(dbg_cpu, ptr);
+  dbg_printf("(0x%04x): %10s: 0x%0*x%s\n",
+             (Bit32u)((Bit64u)ptr - (Bit64u)tss - 2),
+             "reserved", 4, word,
+             word ? " (should be zero!)" : "");
+
+  for (size_t espn = 0; espn < 3; ++espn) {
+    dword = bx_dbg_read_linear_inc<Bit32u>(dbg_cpu, ptr);
+    dbg_printf("(0x%04x): %9s%d: 0x%0*x%s\n",
+               (Bit32u)((Bit64u)ptr - (Bit64u)tss - 4),
+               "esp", espn, 8, dword, "");
+
+    word = bx_dbg_read_linear_inc<Bit16u>(dbg_cpu, ptr);
+    dbg_printf("(0x%04x): %9s%d: 0x%0*x%s\n",
+               (Bit32u)((Bit64u)ptr - (Bit64u)tss - 2),
+               "ss", espn, 4, word, "");
+
+    word = bx_dbg_read_linear_inc<Bit16u>(dbg_cpu, ptr);
+    dbg_printf("(0x%04x): %10s: 0x%0*x%s\n",
+               (Bit32u)((Bit64u)ptr - (Bit64u)tss - 2),
+               "reserved", 4, word,
+               word ? " (should be zero!)" : "");
+  }
+
+  static char const *tss_lookup[] = {
+    "cr3 (pdbr)",
+    "eip",
+    "eflags",
+    "eax",
+    "ecx",
+    "edx",
+    "ebx",
+    "esp",
+    "ebp",
+    "esi",
+    "edi"
+  };
+
+  for (size_t i = 0; i < sizeof(tss_lookup)/sizeof(*tss_lookup); ++i) {
+    dword = bx_dbg_read_linear_inc<Bit32u>(dbg_cpu, ptr);
+    dbg_printf("(0x%04x): %10s: 0x%0*x%s\n",
+               (Bit32u)((Bit64u)ptr - (Bit64u)tss - 4),
+               tss_lookup[i], 8, dword, "");
+  }
+
+  static char const *tss_seg_lookup[] = {
+    "es",
+    "cs",
+    "ss",
+    "ds",
+    "fs",
+    "gs",
+    "ldt"
+  };
+
+  for (size_t i = 0; i < sizeof(tss_seg_lookup)/sizeof(*tss_seg_lookup); ++i) {
+    word = bx_dbg_read_linear_inc<Bit16u>(dbg_cpu, ptr);
+    dbg_printf("(0x%04x): %10s: 0x%0*x%s\n",
+               (Bit32u)((Bit64u)ptr - (Bit64u)tss - 2),
+               tss_seg_lookup[i], 4, word, "");
+
+    word = bx_dbg_read_linear_inc<Bit16u>(dbg_cpu, ptr);
+    dbg_printf("(0x%04x): %10s: 0x%0*x%s\n",
+               (Bit32u)((Bit64u)ptr - (Bit64u)tss - 2),
+               "reserved", 4, word,
+               word ? " (should be zero!)" : "");
+  }
+
+  word = bx_dbg_read_linear_inc<Bit16u>(dbg_cpu, ptr);
+  dbg_printf("(0x%04x): %10s: 0x%0*x%s\n",
+             (Bit32u)((Bit64u)ptr - (Bit64u)tss - 2),
+             "trap", 4, word,
+             (word & -2) ? " (bit 15:1 should be zero!)" : "");
+
+  word = bx_dbg_read_linear_inc<Bit16u>(dbg_cpu, ptr);
+  dbg_printf("(0x%04x): %10s: 0x%0*x%s\n",
+             (Bit32u)((Bit64u)ptr - (Bit64u)tss - 2),
+             "i/o map", 4, word,
+             word ? " (should be zero!)" : "");
 }
 
 void bx_dbg_info_tss_command(void)
@@ -3504,16 +3579,10 @@ void bx_dbg_info_tss_command(void)
   dbg_printf("tr:s=0x%x, base=0x" FMT_ADDRX ", valid=%u\n",
       (unsigned) tr.sel, base, (unsigned) tr.valid);
 
-  bx_phy_address paddr = 0;
-  if (BX_CPU(dbg_cpu)->dbg_xlate_linear2phy(base, &paddr)) {
-    if (BX_CPU(dbg_cpu)->long_mode())
-      bx_dbg_print_tss_64(BX_MEM(0)->get_vector(paddr), len);
-    else
-      bx_dbg_print_tss_32(BX_MEM(0)->get_vector(paddr), len);
-  }
-  else {
-    dbg_printf("bx_dbg_info_tss_command: failed to get physical address for TSS.BASE !");
-  }
+  if (BX_CPU(dbg_cpu)->long_mode())
+    bx_dbg_print_tss_64(base, len);
+  else
+    bx_dbg_print_tss_32(base, len);
 }
 
 /*
