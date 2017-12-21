@@ -2037,7 +2037,7 @@ void bx_dbg_unwatch(bx_phy_address address)
 
 void bx_dbg_continue_command(bx_bool expression)
 {
-  if (! expression) {
+  if (unlikely(!expression)) {
     dbg_printf("continue condition is FALSE\n");
     return;
   }
