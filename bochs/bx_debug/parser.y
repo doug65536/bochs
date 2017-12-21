@@ -136,6 +136,7 @@ Bit64u eval_value;
 %token BX_TOKEN_REG_IP
 %token BX_TOKEN_REG_EIP
 %token BX_TOKEN_REG_RIP
+%type <sval> generic_string
 %type <uval> optional_numeric
 %type <uval> vexpression
 %type <uval> expression
@@ -234,6 +235,12 @@ BX_TOKEN_SEGREG:
     { $$=$1; }
 ;
 
+generic_string:
+      BX_TOKEN_GENERIC
+    | BX_TOKEN_STRING
+    { $$=$1; }
+;
+
 timebp_command:
       BX_TOKEN_TIMEBP expression '\n'
       {
@@ -279,12 +286,12 @@ show_command:
           bx_dbg_show_command("off");
           free($1);
       }
-    | BX_TOKEN_SHOW BX_TOKEN_STRING '\n'
+    | BX_TOKEN_SHOW generic_string '\n'
       {
           bx_dbg_show_param_command($2, 0);
           free($1); free($2);
       }
-    | BX_TOKEN_SHOW BX_TOKEN_STRING BX_TOKEN_XML '\n'
+    | BX_TOKEN_SHOW generic_string BX_TOKEN_XML '\n'
       {
           bx_dbg_show_param_command($2, 1);
           free($1); free($2); free($3);
@@ -467,22 +474,22 @@ watch_point_command:
     ;
 
 symbol_command:
-      BX_TOKEN_LOAD_SYMBOLS BX_TOKEN_STRING '\n'
+      BX_TOKEN_LOAD_SYMBOLS generic_string '\n'
       {
         bx_dbg_symbol_command($2, 0, 0);
         free($1); free($2);
       }
-    | BX_TOKEN_LOAD_SYMBOLS BX_TOKEN_STRING expression '\n'
+    | BX_TOKEN_LOAD_SYMBOLS generic_string expression '\n'
       {
         bx_dbg_symbol_command($2, 0, $3);
         free($1); free($2);
       }
-    | BX_TOKEN_LOAD_SYMBOLS BX_TOKEN_GLOBAL BX_TOKEN_STRING '\n'
+    | BX_TOKEN_LOAD_SYMBOLS BX_TOKEN_GLOBAL generic_string '\n'
       {
         bx_dbg_symbol_command($3, 1, 0);
         free($1); free($2); free($3);
       }
-    | BX_TOKEN_LOAD_SYMBOLS BX_TOKEN_GLOBAL BX_TOKEN_STRING expression '\n'
+    | BX_TOKEN_LOAD_SYMBOLS BX_TOKEN_GLOBAL generic_string expression '\n'
       {
         bx_dbg_symbol_command($3, 1, $4);
         free($1); free($2); free($3);
@@ -625,12 +632,12 @@ breakpoint_command:
         bx_dbg_lbreakpoint_command(bkRegular, $2, $4);
         free($1); free($3); free($4);
       }
-    | BX_TOKEN_LBREAKPOINT BX_TOKEN_STRING '\n'
+    | BX_TOKEN_LBREAKPOINT generic_string '\n'
       {
         bx_dbg_lbreakpoint_symbol_command($2, NULL);
         free($1); free($2);
       }
-    | BX_TOKEN_LBREAKPOINT BX_TOKEN_STRING BX_TOKEN_IF BX_TOKEN_STRING '\n'
+    | BX_TOKEN_LBREAKPOINT generic_string BX_TOKEN_IF BX_TOKEN_STRING '\n'
       {
         bx_dbg_lbreakpoint_symbol_command($2, $4);
         free($1); free($2); free($3); free($4);
@@ -676,7 +683,7 @@ slist_command:
         bx_dbg_info_symbols_command(0);
         free($1);
       }
-    | BX_TOKEN_LIST_SYMBOLS BX_TOKEN_STRING '\n'
+    | BX_TOKEN_LIST_SYMBOLS generic_string '\n'
       {
         bx_dbg_info_symbols_command($2);
         free($1);free($2);
@@ -739,7 +746,7 @@ info_command:
         bx_dbg_info_symbols_command(0);
         free($1); free($2);
       }
-    | BX_TOKEN_INFO BX_TOKEN_SYMBOLS BX_TOKEN_STRING '\n'
+    | BX_TOKEN_INFO BX_TOKEN_SYMBOLS generic_string '\n'
       {
         bx_dbg_info_symbols_command($3);
         free($1); free($2); free($3);
@@ -754,17 +761,17 @@ info_command:
         bx_dbg_info_device($3, "");
         free($1); free($2);
       }
-    | BX_TOKEN_INFO BX_TOKEN_DEVICE BX_TOKEN_GENERIC BX_TOKEN_STRING '\n'
+    | BX_TOKEN_INFO BX_TOKEN_DEVICE BX_TOKEN_GENERIC generic_string '\n'
       {
         bx_dbg_info_device($3, $4);
         free($1); free($2);
       }
-    | BX_TOKEN_INFO BX_TOKEN_DEVICE BX_TOKEN_STRING '\n'
+    | BX_TOKEN_INFO BX_TOKEN_DEVICE generic_string '\n'
       {
         bx_dbg_info_device($3, "");
         free($1); free($2);
       }
-    | BX_TOKEN_INFO BX_TOKEN_DEVICE BX_TOKEN_STRING BX_TOKEN_STRING '\n'
+    | BX_TOKEN_INFO BX_TOKEN_DEVICE generic_string generic_string '\n'
       {
         bx_dbg_info_device($3, $4);
         free($1); free($2);
@@ -902,7 +909,7 @@ examine_command:
     ;
 
 restore_command:
-      BX_TOKEN_RESTORE BX_TOKEN_STRING BX_TOKEN_STRING '\n'
+      BX_TOKEN_RESTORE generic_string generic_string '\n'
       {
         bx_dbg_restore_command($2, $3);
         free($1); free($2); free($3);
@@ -910,7 +917,7 @@ restore_command:
     ;
 
 writemem_command:
-      BX_TOKEN_WRITEMEM BX_TOKEN_STRING expression expression '\n'
+      BX_TOKEN_WRITEMEM generic_string expression expression '\n'
       {
         bx_dbg_writemem_command($2, $3, $4);
         free($1); free($2);
