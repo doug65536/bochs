@@ -570,7 +570,7 @@ void bx_dbg_exception(unsigned cpu, Bit8u vector, Bit16u error_code)
      "(#XF) SIMD floating point exception",
   };
 
-  if (BX_CPU(dbg_cpu)->trace || bx_dbg.exceptions)
+  if (BX_CPU(cpu)->trace || bx_dbg.exceptions)
   {
     if (vector <= BX_XM_EXCEPTION) {
       dbg_printf("CPU %d: Exception 0x%02x - %s occured (error_code=0x%04x)\n",
@@ -585,7 +585,7 @@ void bx_dbg_exception(unsigned cpu, Bit8u vector, Bit16u error_code)
 
 void bx_dbg_interrupt(unsigned cpu, Bit8u vector, Bit16u error_code)
 {
-  if (BX_CPU(dbg_cpu)->trace || bx_dbg.interrupts)
+  if (BX_CPU(cpu)->trace || bx_dbg.interrupts)
   {
     dbg_printf("CPU %d: Interrupt 0x%02x occured (error_code=0x%04x)\n",
       cpu, vector, error_code);
