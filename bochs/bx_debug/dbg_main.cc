@@ -2045,8 +2045,8 @@ one_more:
   SIM->set_display_mode(DISP_MODE_SIM);
 
   bx_guard.interrupt_requested = 0;
-  int stop = 0;
-  int which = -1;
+  Bit64u stop = 0;
+
   while (!stop && !bx_guard.interrupt_requested) {
     // the quantum is an arbitrary number of cycles to run in each
     // processor.  In SMP mode, when this limit is reached, the
@@ -2065,8 +2065,7 @@ one_more:
       unsigned found = BX_CPU(0)->guard_found.guard_found;
       stop_reason_t reason = (stop_reason_t) BX_CPU(0)->stop_reason;
       if (found || (reason != STOP_NO_REASON && reason != STOP_CPU_HALTED)) {
-        stop = 1;
-        which = 0;
+        stop |= (Bit64u(1) << 0);
       }
     }
 #if BX_SUPPORT_SMP
@@ -2077,27 +2076,23 @@ one_more:
         bx_dbg_set_icount_guard(cpu, BX_DBG_DEFAULT_ICOUNT_QUANTUM);
         BX_CPU(cpu)->cpu_loop();
         Bit32u executed = BX_CPU(cpu)->get_icount() - cpu_icount;
-        if (executed > max_executed) max_executed = executed;
+        if (unlikely(executed > max_executed))
+          max_executed = executed;
         // set stop flag if a guard found other than icount or halted
         unsigned found = BX_CPU(cpu)->guard_found.guard_found;
         stop_reason_t reason = (stop_reason_t) BX_CPU(cpu)->stop_reason;
-        if (found || (reason != STOP_NO_REASON && reason != STOP_CPU_HALTED)) {
-          stop = 1;
-          which = cpu;
-          break;
+        if (unlikely(found || (reason != STOP_NO_REASON &&
+                               reason != STOP_CPU_HALTED))) {
+          stop |= (Bit64u(1) << cpu);
         }
-        // <not anymore!>
-        // even if stop==1, finish cycling through all processors.
-        // "which" remembers which cpu set the stop flag.  If multiple
-        // cpus set stop, too bad.
-        // </not anymore!>
       }
 
       // Potential deadlock if all processors are halted.  Then
       // max_executed will be 0, tick will be incremented by zero, and
       // there will never be a timed event to wake them up.
       // To avoid this, always tick by a minimum of 1.
-      if (max_executed < 1) max_executed=1;
+      if (unlikely(max_executed < 1))
+        max_executed = 1;
 
       // increment time tick only after all processors have had their chance.
       BX_TICKN(max_executed);
@@ -2109,16 +2104,30 @@ one_more:
   SIM->refresh_ci();
 
   // (mch) hack
-  if (!bx_user_quit) {
+  if (unlikely(!bx_user_quit)) {
     SIM->refresh_vga();
   }
 
   BX_INSTR_DEBUG_PROMPT();
   bx_dbg_print_guard_results();
 
-  if (watchpoint_continue && (BX_CPU(which)->stop_reason == STOP_READ_WATCH_POINT ||
-            BX_CPU(which)->stop_reason == STOP_WRITE_WATCH_POINT))
-  goto one_more;
+  if (unlikely(watchpoint_continue && stop)) {
+    int ignored_watchpoints = 0;
+    int stops = 0;
+    for (int i = 0; i < BX_SMP_PROCESSORS; ++i) {
+      if (stop & (Bit64u(1) << i)) {
+        ++stops;
+        if (BX_CPU(i)->stop_reason == STOP_READ_WATCH_POINT ||
+           BX_CPU(i)->stop_reason == STOP_WRITE_WATCH_POINT) {
+          ++ignored_watchpoints;
+        }
+      }
+    }
+
+    // If all of the stops were ignored watchpoints, don't stop
+    if (unlikely(stops <= ignored_watchpoints))
+      goto one_more;
+  }
 }
 
 void bx_dbg_stepN_command(int cpu, Bit32u count)
@@ -2154,7 +2163,8 @@ void bx_dbg_stepN_command(int cpu, Bit32u count)
         // set stop flag if a guard found other than icount or halted
         unsigned found = BX_CPU(ncpu)->guard_found.guard_found;
         stop_reason_t reason = (stop_reason_t) BX_CPU(ncpu)->stop_reason;
-        if (found || (reason != STOP_NO_REASON && reason != STOP_CPU_HALTED))
+        if (unlikely(found || (reason != STOP_NO_REASON &&
+                               reason != STOP_CPU_HALTED)))
           stop = 1;
       }
 
