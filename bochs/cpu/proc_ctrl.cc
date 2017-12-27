@@ -814,7 +814,11 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::MONITOR(bxInstruction_c *i)
 
   bx_phy_address paddr = BX_CPU_THIS_PTR address_xlation.paddress1;
 #if BX_SUPPORT_MEMTYPE
-  if (BX_CPU_THIS_PTR address_xlation.memtype1 != BX_MEMTYPE_WB) return;
+  if (BX_CPU_THIS_PTR address_xlation.memtype1 != BX_MEMTYPE_WB) {
+    BX_INFO(("Ignoring attempt to monitor memory"
+             " that is not WB memory type\n"));
+    return;
+  }
 #endif
 
 #if BX_SUPPORT_SVM
@@ -830,7 +834,9 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::MONITOR(bxInstruction_c *i)
 
   BX_CPU_THIS_PTR monitor.arm(paddr);
 
-  BX_DEBUG(("MONITOR for phys_addr=0x" FMT_PHY_ADDRX, BX_CPU_THIS_PTR monitor.monitor_addr));
+  BX_DEBUG(("MONITOR for linear_addr=0x" FMT_ADDRX
+            " phys_addr=0x" FMT_PHY_ADDRX, eaddr,
+            BX_CPU_THIS_PTR monitor.monitor_addr));
 #endif
 
   BX_NEXT_INSTR(i);
@@ -876,7 +882,7 @@ BX_INSF_TYPE BX_CPP_AttrRegparmN(1) BX_CPU_C::MWAIT(bxInstruction_c *i)
   if (BX_CPU_THIS_PTR in_svm_guest) {
     if (SVM_INTERCEPT(SVM_INTERCEPT1_MWAIT_ARMED))
       if (BX_CPU_THIS_PTR monitor.armed) Svm_Vmexit(SVM_VMEXIT_MWAIT_CONDITIONAL);
-    
+
     if (SVM_INTERCEPT(SVM_INTERCEPT1_MWAIT)) Svm_Vmexit(SVM_VMEXIT_MWAIT);
   }
 #endif
