@@ -42,6 +42,8 @@ void dbg_printf (const char *fmt, ...);
 
 #include "cpu/decoder/decoder.h"
 
+typedef struct symbol_entry_t symbol_entry_t;
+
 typedef enum
 {
   bkRegular,
@@ -195,7 +197,7 @@ int bx_dbg_show_symbolic(void);
 void bx_dbg_set_symbol_command(const char *symbol, bx_address val);
 const char* bx_dbg_symbolic_address(bx_address context, bx_address eip, bx_address base);
 int bx_dbg_symbol_command(const char* filename, bx_bool global, bx_address offset);
-void bx_dbg_info_symbols_command(const char *Symbol);
+symbol_entry_t *bx_dbg_info_symbols_command(const char *Symbol);
 int bx_dbg_lbreakpoint_symbol_command(const char *Symbol, const char *condition);
 bx_address bx_dbg_get_symbol_value(const char *Symbol);
 const char* bx_dbg_disasm_symbolic_address(bx_address eip, bx_address base);

@@ -190,11 +190,13 @@ symbol_entry_t* context_t::get_symbol_entry(const char *symbol) const
   if (m_rsyms.empty())
     return 0;
 
+
   symbol_entry_t probe(0, symbol);
   rsym_set_t::const_iterator iter;
   iter=m_rsyms.find(&probe);
-  if(iter==m_rsyms.end()) // No symbol found
-    return 0;
+  if(iter==m_rsyms.end()) { // No symbol found
+    return bx_dbg_info_symbols_command(symbol);
+  }
   return *iter;
 }
 
@@ -358,13 +360,13 @@ static bool bx_dbg_strprefix(const char *s1, const char *s2)
   return strncmp(s1, s2, len)==0;
 }
 
-void bx_dbg_info_symbols_command(const char *symbol)
+symbol_entry_t *bx_dbg_info_symbols_command(const char *symbol)
 {
   context_t* cntx = context_t::get_context(0);
 
   if(!cntx) {
     dbg_printf ("Global context not available\n");
-    return;
+    return 0;
   }
 
   if(symbol) {
@@ -373,7 +375,7 @@ void bx_dbg_info_symbols_command(const char *symbol)
     rsyms=cntx->get_all_rsymbols();
     if (rsyms->empty ()) {
       dbg_printf ("symbols not loaded\n");
-      return;
+      return 0;
     }
 
     symbol_entry_t probe(0, symbol);
@@ -385,13 +387,19 @@ void bx_dbg_info_symbols_command(const char *symbol)
     if(iter==rsyms->end() || !bx_dbg_strprefix(probe.name, (*iter)->name))
       dbg_printf ("No symbols found\n");
     else {
+      symbol_entry_t *last_match = 0;
+      size_t count = 0;
       for(;iter!=rsyms->end() && bx_dbg_strprefix(probe.name, (*iter)->name);++iter) {
 #if BX_SUPPORT_X86_64 && (BX_HAVE_STRTOULL || BX_HAVE_STRTOUQ)
+        last_match = *iter;
+        ++count;
         dbg_printf (FMT_ADDRX64 ": %s\n", (*iter)->start, (*iter)->name);
 #else
         dbg_printf ("%08x: %s\n", (*iter)->start, (*iter)->name);
 #endif
       }
+      if (count == 1)
+        return last_match;
     }
   }
   else {
@@ -400,7 +408,7 @@ void bx_dbg_info_symbols_command(const char *symbol)
     syms=cntx->get_all_symbols();
     if (syms->empty()) {
       dbg_printf ("symbols not loaded\n");
-      return;
+      return 0;
     }
 
     context_t::sym_set_t::const_iterator iter;
@@ -415,6 +423,7 @@ void bx_dbg_info_symbols_command(const char *symbol)
 #endif
     }
   }
+  return 0;
 }
 
 int bx_dbg_lbreakpoint_symbol_command(const char *symbol, const char *condition)
