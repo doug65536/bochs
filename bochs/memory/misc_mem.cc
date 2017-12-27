@@ -100,9 +100,14 @@ void BX_MEM_C::init_memory(Bit64u guest, Bit64u host)
     BX_MEM_THIS vector = NULL;
     BX_MEM_THIS blocks = NULL;
   }
-  BX_MEM_THIS vector = alloc_vector_aligned(host + BIOSROMSZ + EXROMSIZE + 4096, BX_MEM_VECTOR_ALIGN);
+  BX_MEM_THIS vector = alloc_vector_aligned(
+        host + BIOSROMSZ + EXROMSIZE + 4096, BX_MEM_VECTOR_ALIGN);
   BX_INFO(("allocated memory at %p. after alignment, vector=%p",
         BX_MEM_THIS actual_vector, BX_MEM_THIS vector));
+
+  //srand(time(0));
+  //for (size_t i = 0; i < host; ++i)
+  //  BX_MEM_THIS vector[i] = rand() >> 8;
 
   BX_MEM_THIS len = guest;
   BX_MEM_THIS allocated = host;
