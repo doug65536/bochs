@@ -941,7 +941,7 @@ void BX_MEM_C::set_bios_write(bx_bool enabled)
 bx_bool BX_MEM_C::is_monitor(bx_phy_address begin_addr, unsigned len)
 {
   for (int i=0; i<BX_SMP_PROCESSORS;i++) {
-    if (BX_CPU(i)->is_monitor(begin_addr, len))
+    if (unlikely(BX_CPU(i)->is_monitor(begin_addr, len)))
       return 1;
   }
 
