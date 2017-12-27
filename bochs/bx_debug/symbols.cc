@@ -252,7 +252,7 @@ const char* bx_dbg_symbolic_address(bx_address context, bx_address xip, bx_addre
     snprintf (buf, 80, "no symbol");
     return buf;
   }
-  snprintf (buf, 80, "%s+" FMT_ADDRX,
+  snprintf (buf, 80, "%s+0x%" FMT_64 "x",
             entr->name, (base+xip) - entr->start);
   return buf;
 }
@@ -271,7 +271,7 @@ const char* bx_dbg_disasm_symbolic_address(bx_address xip, bx_address base)
   if (!entr)
     return 0;
 
-  snprintf(buf, sizeof(buf), "%s+%" FMT_64 "x",
+  snprintf(buf, sizeof(buf), "%s+0x%" FMT_64 "x",
     entr->name, (base+xip) - entr->start);
 
   return buf;
