@@ -32,7 +32,8 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::setEFlags(Bit32u new_eflags)
   // VM flag could not be set from long mode
 #if BX_SUPPORT_X86_64
   if (long_mode()) {
-    if (BX_CPU_THIS_PTR get_VM()) BX_PANIC(("VM is set in long mode !"));
+    if (unlikely(BX_CPU_THIS_PTR get_VM()))
+      BX_PANIC(("VM is set in long mode !"));
     new_eflags &= ~EFlagsVMMask;
   }
 #endif
@@ -42,11 +43,11 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::setEFlags(Bit32u new_eflags)
 
   if (BX_CPU_THIS_PTR get_RF()) invalidate_prefetch_q();
 
-  if (BX_CPU_THIS_PTR get_TF()) {
+  if (unlikely(BX_CPU_THIS_PTR get_TF())) {
     BX_CPU_THIS_PTR async_event = 1; // TF == 1
   }
 
-  if ((eflags ^ new_eflags) & EFlagsIFMask) {
+  if (unlikely((eflags ^ new_eflags) & EFlagsIFMask)) {
     handleInterruptMaskChange();
   }
 
@@ -101,11 +102,12 @@ BX_CPU_C::write_flags(Bit16u flags, bx_bool change_IOPL, bx_bool change_IF)
 Bit32u BX_CPU_C::force_flags(void)
 {
   Bit32u newflags  = getB_CF();
-         newflags |= getB_PF() << 2;
-         newflags |= getB_AF() << 4;
-         newflags |= getB_ZF() << 6;
-         newflags |= getB_SF() << 7;
-         newflags |= getB_OF() << 11;
+
+  newflags |= getB_PF() << 2;
+  newflags |= getB_AF() << 4;
+  newflags |= getB_ZF() << 6;
+  newflags |= getB_SF() << 7;
+  newflags |= getB_OF() << 11;
 
   BX_CPU_THIS_PTR eflags = (BX_CPU_THIS_PTR eflags & ~EFlagsOSZAPCMask)
     | (newflags & EFlagsOSZAPCMask);
