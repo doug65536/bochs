@@ -284,17 +284,20 @@ void disassembler::resolve64_mod0(const x86_insn *insn, unsigned datasize)
   else
     seg = segment_name[BX_SEG_REG_DS];
 
-  if (intel_mode) rip_regname = "rip";
-  else rip_regname = "%rip";
+  if ((insn->rm & 7) == 5) {/* no reg, 32-bit displacement */
+    if (intel_mode) rip_regname = "rip";
+    else rip_regname = "%rip";
 
-  if ((insn->rm & 7) == 5) /* no reg, 32-bit displacement */
-    print_memory_access64(datasize, seg, rip_regname, NULL, 0, (Bit32s) insn->displacement.displ32);
-  else
-    print_memory_access64(datasize, seg, general_64bit_regname[insn->rm], NULL, 0, 0);
+    print_memory_access64(datasize, seg, rip_regname, NULL, 0,
+                          (Bit32s) insn->displacement.displ32);
 
-  const char *sym = GET_SYMBOL(db_eip + insn->displacement.displ32);
-  if (sym)
-    dis_sprintf(SYMBOLIC_ADDR(""), sym);
+    const char *sym = GET_SYMBOL(db_eip + insn->displacement.displ32);
+    if (sym)
+      dis_sprintf(SYMBOLIC_ADDR(""), sym);
+  } else {
+    print_memory_access64(datasize, seg,
+                          general_64bit_regname[insn->rm], NULL, 0, 0);
+  }
 }
 
 void disassembler::resolve64_mod1or2(const x86_insn *insn, unsigned datasize)
