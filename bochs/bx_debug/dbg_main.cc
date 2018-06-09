@@ -3809,6 +3809,11 @@ static char *bx_dbg_dump_table_flags(
   return buf;
 }
 
+static Bit64u bx_canonical(Bit64u addr)
+{
+  return (Bit64u)(((Bit64s)(addr << 16)) >> 16);
+}
+
 void bx_dbg_dump_table(void)
 {
   if (! BX_CPU(dbg_cpu)->cr0.get_PG()) {
@@ -3830,7 +3835,7 @@ void bx_dbg_dump_table(void)
   int ent = pae ? 512 : 1024;
   int topent = levels == 3 ? 2 : ent;
   int ptesz = pae ? 8 : 4;
-  int lindigits = lma ? 12 : 8;
+  int lindigits = lma ? 16 : 8;
   int phydigits = pae ? 13 : 8;
 
   Bit8u pte_bytes[8];
@@ -3843,7 +3848,8 @@ void bx_dbg_dump_table(void)
   char flags[16];
 
   if (!lma && (cr3 >> 32)) {
-    dbg_printf("32 bit PAE page directory physical address not within first 4GB!\n");
+    dbg_printf("32 bit PAE page directory physical address"
+               " not within first 4GB!\n");
   }
 
   phyaddr[0] = pd;
@@ -3874,9 +3880,11 @@ void bx_dbg_dump_table(void)
     if (!pae && huge0) {
       // 4MB page
       phyaddr[0] = pte & (~(Bit64u)0 << 22);
-      dbg_printf("%0*" FMT_64 "x: %0*" FMT_64 "x -> %0*" FMT_64 "x 4MB %s\n",
+      dbg_printf("0x%0*" FMT_64 "x:"
+                 " 0x%0*" FMT_64 "x ->"
+                 " 0x%0*" FMT_64 "x 4MB %s\n",
         phydigits, (Bit64u)ent_addr,
-        lindigits, (Bit64u)linaddr[0],
+        lindigits, bx_canonical(linaddr[0]),
         phydigits, (Bit64u)phyaddr[0],
         bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 0));
       continue;
@@ -3884,9 +3892,11 @@ void bx_dbg_dump_table(void)
 
     if (pae && huge0) {
       // Invalid PAE huge page at level 0
-      dbg_printf("%0*" FMT_64 "x: %0*" FMT_64 "x -> Reserved huge page bit set!\n",
+      dbg_printf("0x%0*" FMT_64 "x:"
+                 " 0x%0*" FMT_64 "x ->"
+                 " Reserved huge page bit set!\n",
         phydigits, (Bit64u)ent_addr,
-        lindigits, (Bit64u)linaddr[0],
+        lindigits, bx_canonical(linaddr[0]),
         bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 0));
       continue;
     }
@@ -3914,24 +3924,28 @@ void bx_dbg_dump_table(void)
       if (!(pte & 1))
         continue;
 
-      int huge1 = !!(pte & (1<<7));
-
       if (!pae) {
         // 32 bit 4KB page
         phyaddr[1] = pte & (~(Bit64u)0 << 12);
-        dbg_printf("%0*" FMT_64 "x: %0*" FMT_64 "x -> %0*" FMT_64 "x 4KB %s\n",
+        dbg_printf("0x%0*" FMT_64 "x:"
+                   " 0x%0*" FMT_64 "x ->"
+                   " 0x%0*" FMT_64 "x 4KB %s\n",
           phydigits, (Bit64u)ent_addr,
-          lindigits, (Bit64u)linaddr[1],
+          lindigits, bx_canonical(linaddr[1]),
           phydigits, (Bit64u)phyaddr[1],
           bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 1));
         continue;
       }
 
+      int huge1 = !!(pte & (1<<7));
+
       if (huge1 && !lma) {
         phyaddr[1] = pte & (~(Bit64u)0 << 21) & ~(~(Bit64u)0 << 52);
-        dbg_printf("%0*" FMT_64 "x: %0*" FMT_64 "x -> %0*" FMT_64 "x 2MB %s\n",
+        dbg_printf("0x%0*" FMT_64 "x:"
+                   " 0x%0*" FMT_64 "x ->"
+                   " 0x%0*" FMT_64 "x 2MB %s\n",
           phydigits, (Bit64u)ent_addr,
-          lindigits, (Bit64u)linaddr[1],
+          lindigits, bx_canonical(linaddr[1]),
           phydigits, (Bit64u)phyaddr[1],
           bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 1));
         continue;
@@ -3939,9 +3953,11 @@ void bx_dbg_dump_table(void)
 
       if (huge1) {
         phyaddr[1] = pte & (~(Bit64u)0 << 30) & ~(~(Bit64u)0 << 52);
-        dbg_printf("%0*" FMT_64 "x: %0*" FMT_64 "x -> %0*" FMT_64 "x 1GB %s\n",
+        dbg_printf("0x%0*" FMT_64 "x:"
+                   " 0x%0*" FMT_64 "x ->"
+                   " 0x%0*" FMT_64 "x 1GB %s\n",
           phydigits, (Bit64u)ent_addr,
-          lindigits, (Bit64u)linaddr[1],
+          lindigits, bx_canonical(linaddr[1]),
           phydigits, (Bit64u)phyaddr[1],
           bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 1));
         continue;
@@ -3969,9 +3985,11 @@ void bx_dbg_dump_table(void)
 
         if (huge2) {
           phyaddr[2] = pte & (~(Bit64u)0 << 21) & ~(~(Bit64u)0 << 52);
-          dbg_printf("%0*" FMT_64 "x: %0*" FMT_64 "x -> %0*" FMT_64 "x 2MB %s\n",
+          dbg_printf("0x%0*" FMT_64 "x:"
+                     " 0x%0*" FMT_64 "x ->"
+                     " 0x%0*" FMT_64 "x 2MB %s\n",
             phydigits, (Bit64u)ent_addr,
-            lindigits, (Bit64u)linaddr[2],
+            lindigits, bx_canonical(linaddr[2]),
             phydigits, (Bit64u)phyaddr[2],
             bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 2));
           continue;
@@ -3979,9 +3997,11 @@ void bx_dbg_dump_table(void)
 
         if (!lma) {
           phyaddr[2] = pte & (~(Bit64u)0 << 12) & ~(~(Bit64u)0 << 52);
-          dbg_printf("%0*" FMT_64 "x: %0*" FMT_64 "x -> %0*" FMT_64 "x 4KB %s\n",
+          dbg_printf("0x%0*" FMT_64 "x:"
+                     " 0x%0*" FMT_64 "x ->"
+                     " 0x%0*" FMT_64 "x 4KB %s\n",
             phydigits, (Bit64u)ent_addr,
-            lindigits, (Bit64u)linaddr[2],
+            lindigits, bx_canonical(linaddr[2]),
             phydigits, (Bit64u)phyaddr[2],
             bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 2));
           continue;
@@ -4006,9 +4026,11 @@ void bx_dbg_dump_table(void)
             continue;
 
           phyaddr[4] = pte & (~(Bit64u)0 << 12) & ~(~(Bit64u)0 << 52);
-          dbg_printf("%0*" FMT_64 "x: %0*" FMT_64 "x -> %0*" FMT_64 "x 4KB %s\n",
+          dbg_printf("0x%0*" FMT_64 "x:"
+                     " 0x%0*" FMT_64 "x ->"
+                     " 0x%0*" FMT_64 "x 4KB %s\n",
             phydigits, (Bit64u)ent_addr,
-            lindigits, (Bit64u)linaddr[3],
+            lindigits, bx_canonical(linaddr[3]),
             phydigits, (Bit64u)phyaddr[4],
             bx_dbg_dump_table_flags(flags, sizeof(flags), pte, 3));
         }
