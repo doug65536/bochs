@@ -33,14 +33,14 @@ const char *intel_general_16bit_regname[16] = {
     "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w"
 };
 
-const char *intel_general_32bit_regname[16] = {
+const char *intel_general_32bit_regname[17] = {
     "eax", "ecx", "edx",  "ebx",  "esp",  "ebp",  "esi",  "edi",
-    "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d"
+    "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d", "eip"
 };
 
-const char *intel_general_64bit_regname[16] = {
+const char *intel_general_64bit_regname[17] = {
     "rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi",
-    "r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15"
+    "r8",  "r9",  "r10", "r11", "r12", "r13", "r14", "r15", "rip"
 };
 
 const char *intel_general_8bit_regname_rex[16] = {
@@ -80,14 +80,14 @@ const char *att_general_16bit_regname[16] = {
     "%r8w", "%r9w", "%r10w", "%r11w", "%r12w", "%r13w", "%r14w", "%r15w"
 };
 
-const char *att_general_32bit_regname[16] = {
+const char *att_general_32bit_regname[17] = {
     "%eax", "%ecx", "%edx",  "%ebx",  "%esp",  "%ebp",  "%esi",  "%edi",
-    "%r8d", "%r9d", "%r10d", "%r11d", "%r12d", "%r13d", "%r14d", "%r15d"
+    "%r8d", "%r9d", "%r10d", "%r11d", "%r12d", "%r13d", "%r14d", "%r15d", "%eip"
 };
 
-const char *att_general_64bit_regname[16] = {
+const char *att_general_64bit_regname[17] = {
     "%rax", "%rcx", "%rdx", "%rbx", "%rsp", "%rbp", "%rsi", "%rdi",
-    "%r8",  "%r9",  "%r10", "%r11", "%r12", "%r13", "%r14", "%r15"
+    "%r8",  "%r9",  "%r10", "%r11", "%r12", "%r13", "%r14", "%r15", "%rip"
 };
 
 const char *att_general_8bit_regname_rex[16] = {
