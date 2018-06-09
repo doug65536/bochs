@@ -1,5 +1,5 @@
-*.o
-*.a
+**/*.o
+**/*.a
 gui/Makefile
 host/linux/pcidev/Makefile
 instrument/stubs/Makefile
