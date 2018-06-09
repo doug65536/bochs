@@ -804,7 +804,6 @@ VMX_error_code BX_CPU_C::VMenterLoadCheckVmControls(void)
      vm->xss_exiting_bitmap = VMread64(VMCS_64BIT_CONTROL_XSS_EXITING_BITMAP);
   else
      vm->xss_exiting_bitmap = 0;
-#endif
 
 #endif // BX_SUPPORT_X86_64
 
@@ -967,7 +966,7 @@ VMX_error_code BX_CPU_C::VMenterLoadCheckVmControls(void)
        case BX_SOFTWARE_INTERRUPT:
        case BX_PRIVILEGED_SOFTWARE_INTERRUPT:
        case BX_SOFTWARE_EXCEPTION:
-         if ((vm->vmentry_instr_length == 0 && !BX_SUPPORT_VMX_EXTENSION(BX_VMX_SW_INTERRUPT_INJECTION_ILEN_0)) ||
+         if ((vm->vmentry_instr_length == 0 && !BX_SUPPORT_VMX_EXTENSION(BX_VMX_SW_INTERRUPT_INJECTION_ILEN_0)) || 
               vm->vmentry_instr_length > 15)
          {
            BX_ERROR(("VMFAIL: VMENTRY bad injected event instr length"));
@@ -1565,7 +1564,7 @@ Bit32u BX_CPU_C::VMenterLoadCheckGuestState(Bit64u *qualification)
   Bit32u ldtr_ar = VMread32(VMCS_32BIT_GUEST_LDTR_ACCESS_RIGHTS);
   ldtr_ar = vmx_unpack_ar_field(ldtr_ar, BX_CPU_THIS_PTR vmcs_map->get_access_rights_format());
   bx_bool ldtr_invalid = (ldtr_ar >> 16) & 1;
-  if (set_segment_ar_data(&guest.ldtr, !ldtr_invalid,
+  if (set_segment_ar_data(&guest.ldtr, !ldtr_invalid, 
          (Bit16u) ldtr_selector, ldtr_base, ldtr_limit, (Bit16u)(ldtr_ar)))
   {
      // ldtr is valid
@@ -1615,7 +1614,7 @@ Bit32u BX_CPU_C::VMenterLoadCheckGuestState(Bit64u *qualification)
   }
 #endif
 
-  set_segment_ar_data(&guest.tr, !tr_invalid,
+  set_segment_ar_data(&guest.tr, !tr_invalid, 
       (Bit16u) tr_selector, tr_base, tr_limit, (Bit16u)(tr_ar));
 
   if (tr_invalid) {
@@ -1945,7 +1944,7 @@ Bit32u BX_CPU_C::VMenterLoadCheckGuestState(Bit64u *qualification)
   if (BX_CPU_THIS_PTR sregs[BX_SEG_REG_CS].cache.u.segment.limit_scaled > guest.sregs[BX_SEG_REG_CS].cache.u.segment.limit_scaled)
     BX_CPU_THIS_PTR iCache.flushICacheEntries();
 #endif
-
+  
   for(unsigned segreg=0; segreg<6; segreg++)
     BX_CPU_THIS_PTR sregs[segreg] = guest.sregs[segreg];
 
@@ -2262,7 +2261,7 @@ void BX_CPU_C::VMexitSaveGuestState(void)
     VMwrite32(VMCS_32BIT_GUEST_ACTIVITY_STATE, BX_ACTIVITY_STATE_ACTIVE);
   else
     VMwrite32(VMCS_32BIT_GUEST_ACTIVITY_STATE, BX_CPU_THIS_PTR activity_state);
-
+  
   Bit32u interruptibility_state = 0;
   if (interrupts_inhibited(BX_INHIBIT_INTERRUPTS)) {
      if (interrupts_inhibited(BX_INHIBIT_DEBUG))
@@ -2273,7 +2272,7 @@ void BX_CPU_C::VMexitSaveGuestState(void)
 
   if (is_masked_event(BX_EVENT_SMI))
     interruptibility_state |= BX_VMX_INTERRUPTS_BLOCKED_SMI_BLOCKED;
-
+  
   if (vm->vmexec_ctrls1 & VMX_VM_EXEC_CTRL1_VIRTUAL_NMI) {
     if (is_masked_event(BX_EVENT_VMX_VIRTUAL_NMI))
       interruptibility_state |= BX_VMX_INTERRUPTS_BLOCKED_NMI_BLOCKED;
@@ -2293,7 +2292,7 @@ void BX_CPU_C::VMexitSaveGuestState(void)
        vm->vmentry_ctrls |=  VMX_VMENTRY_CTRL1_X86_64_GUEST;
     else
        vm->vmentry_ctrls &= ~VMX_VMENTRY_CTRL1_X86_64_GUEST;
-
+      
     VMwrite32(VMCS_32BIT_CONTROL_VMENTRY_CONTROLS, vm->vmentry_ctrls);
   }
 
@@ -2441,7 +2440,7 @@ void BX_CPU_C::VMexitLoadHostState(void)
     }
   }
 
-  // SS.DPL always clear
+  // SS.DPL always clear 
   BX_CPU_THIS_PTR sregs[BX_SEG_REG_SS].cache.dpl = 0;
 
   if (x86_64_host || BX_CPU_THIS_PTR sregs[BX_SEG_REG_FS].cache.valid)
@@ -2559,7 +2558,7 @@ void BX_CPU_C::VMexit(Bit32u reason, Bit64u qualification)
     VMexitSaveGuestState();
 
     Bit32u msr = StoreMSRs(vm->vmexit_msr_store_cnt, vm->vmexit_msr_store_addr);
-    if (msr) {
+    if (msr) { 
       BX_ERROR(("VMABORT: Error when saving guest MSR number %d", msr));
       VMabort(VMABORT_SAVING_GUEST_MSRS_FAILURE);
     }
@@ -2626,7 +2625,7 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::VMXON(bxInstruction_c *i)
     exception(BX_UD_EXCEPTION, 0);
 
   if (! BX_CPU_THIS_PTR in_vmx) {
-    if (CPL != 0 || ! BX_CPU_THIS_PTR cr0.get_NE() ||
+    if (CPL != 0 || ! BX_CPU_THIS_PTR cr0.get_NE() || 
         ! (BX_CPU_THIS_PTR cr0.get_PE()) || BX_GET_ENABLE_A20() == 0 ||
         ! (BX_CPU_THIS_PTR msr.ia32_feature_ctrl & BX_IA32_FEATURE_CONTROL_LOCK_BIT) ||
         ! (BX_CPU_THIS_PTR msr.ia32_feature_ctrl & BX_IA32_FEATURE_CONTROL_VMX_ENABLE_BIT))
@@ -2650,7 +2649,7 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::VMXON(bxInstruction_c *i)
       VMfailInvalid();
       BX_NEXT_INSTR(i);
     }
-
+      
     BX_CPU_THIS_PTR vmcsptr = BX_INVALID_VMCSPTR;
     BX_CPU_THIS_PTR vmcshostptr = 0;
     BX_CPU_THIS_PTR vmxonptr = pAddr;
@@ -2676,7 +2675,7 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::VMXON(bxInstruction_c *i)
 
     VMfail(VMXERR_VMXON_IN_VMX_ROOT_OPERATION);
   }
-#endif
+#endif  
 
   BX_NEXT_INSTR(i);
 }
@@ -2711,7 +2710,7 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::VMXOFF(bxInstruction_c *i)
 #endif
     VMsucceed();
   }
-#endif
+#endif  
 
   BX_NEXT_INSTR(i);
 }
@@ -2734,7 +2733,7 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::VMCALL(bxInstruction_c *i)
     exception(BX_GP_EXCEPTION, 0);
   }
 
-  if (BX_CPU_THIS_PTR in_smm /*||
+  if (BX_CPU_THIS_PTR in_smm /*|| 
         (the logical processor does not support the dual-monitor treatment of SMIs and SMM) ||
         (the valid bit in the IA32_SMM_MONITOR_CTL MSR is clear)*/)
   {
@@ -2783,7 +2782,7 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::VMCALL(bxInstruction_c *i)
       FI;
   FI;
 */
-#endif
+#endif  
 
   BX_NEXT_TRACE(i);
 }
@@ -2883,7 +2882,7 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::VMLAUNCH(bxInstruction_c *i)
   ///////////////////////////////////////////////////////
   // STEP 6: Update VMCS 'launched' state
   ///////////////////////////////////////////////////////
-
+ 
   if (vmlaunch) VMwrite32(VMCS_LAUNCH_STATE_FIELD_ENCODING, VMCS_STATE_LAUNCHED);
 
 /*
@@ -3014,7 +3013,7 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::VMPTRLD(bxInstruction_c *i)
        VMsucceed();
     }
   }
-#endif
+#endif  
 
   BX_NEXT_INSTR(i);
 }
@@ -3037,7 +3036,7 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::VMPTRST(bxInstruction_c *i)
   bx_address eaddr = BX_CPU_RESOLVE_ADDR(i);
   write_virtual_qword(i->seg(), eaddr, BX_CPU_THIS_PTR vmcsptr);
   VMsucceed();
-#endif
+#endif  
 
   BX_NEXT_INSTR(i);
 }
@@ -3215,9 +3214,9 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::VMREAD_EdGd(bxInstruction_c *i)
      Bit32u eaddr = (Bit32u) BX_CPU_RESOLVE_ADDR(i);
      write_virtual_dword_32(i->seg(), eaddr, field_32);
   }
-
+ 
   VMsucceed();
-#endif
+#endif  
 
   BX_NEXT_INSTR(i);
 }
@@ -3280,9 +3279,9 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::VMREAD_EqGq(bxInstruction_c *i)
      Bit64u eaddr = BX_CPU_RESOLVE_ADDR(i);
      write_linear_qword(i->seg(), get_laddr64(i->seg(), eaddr), field_64);
   }
-
+ 
   VMsucceed();
-#endif
+#endif  
 
   BX_NEXT_INSTR(i);
 }
@@ -3352,7 +3351,7 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::VMWRITE_GdEd(bxInstruction_c *i)
     vmwrite(encoding, (Bit64u) val_32);
 
   VMsucceed();
-#endif
+#endif  
 
   BX_NEXT_INSTR(i);
 }
@@ -3428,7 +3427,7 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::VMWRITE_GqEq(bxInstruction_c *i)
     vmwrite(encoding, val_64);
 
   VMsucceed();
-#endif
+#endif  
 
   BX_NEXT_INSTR(i);
 }
@@ -3479,7 +3478,7 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::VMCLEAR(bxInstruction_c *i)
 
     VMsucceed();
   }
-#endif
+#endif  
 
   BX_NEXT_INSTR(i);
 }
@@ -3602,7 +3601,7 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::INVVPID(bxInstruction_c *i)
   case BX_INVEPT_INVVPID_ALL_CONTEXT_INVALIDATION:
     TLB_flush(); // invalidate all mappings tagged with VPID <> 0
     break;
-
+   
   case BX_INVEPT_INVVPID_SINGLE_CONTEXT_NON_GLOBAL_INVALIDATION:
     TLB_flushNonGlobal(); // invalidate all mappings tagged with VPID except globals
     break;
@@ -3838,7 +3837,7 @@ void BX_CPU_C::register_vmx_state(bx_param_c *parent)
   //
 
   bx_list_c *vmentry_ctrls = new bx_list_c(vmcache, "VMENTRY_CTRLS");
-
+   
   BXRS_HEX_PARAM_FIELD(vmentry_ctrls, vmentry_ctrls, BX_CPU_THIS_PTR vmcs.vmentry_ctrls);
   BXRS_DEC_PARAM_FIELD(vmentry_ctrls, vmentry_msr_load_cnt, BX_CPU_THIS_PTR vmcs.vmentry_msr_load_cnt);
   BXRS_HEX_PARAM_FIELD(vmentry_ctrls, vmentry_msr_load_addr, BX_CPU_THIS_PTR vmcs.vmentry_msr_load_addr);
