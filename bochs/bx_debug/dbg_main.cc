@@ -2236,13 +2236,16 @@ void bx_dbg_disassemble_current(int which_cpu, int print_time)
     else
       dbg_printf("(%u) ", which_cpu);
 
-    if (BX_CPU(which_cpu)->protected_mode()) {
+    // The code segment descriptor cache is what determines how instructions
+    // are decoded, not CR0.PE.
+    if (BX_CPU(which_cpu)->sregs[BX_SEG_REG_CS].cache.u.segment.d_b) {
       dbg_printf("[0x" FMT_PHY_ADDRX "] %04x:" FMT_ADDRX " (%s): ",
         phy, BX_CPU(which_cpu)->guard_found.cs,
         BX_CPU(which_cpu)->guard_found.eip,
-        bx_dbg_symbolic_address(BX_CPU(which_cpu)->cr3 >> 12,
-           BX_CPU(which_cpu)->guard_found.eip,
-           BX_CPU(which_cpu)->get_segment_base(BX_SEG_REG_CS)));
+        bx_dbg_symbolic_address(
+          BX_CPU(which_cpu)->cr0.get_PG() ? BX_CPU(which_cpu)->cr3 >> 12 : 0,
+          BX_CPU(which_cpu)->guard_found.eip,
+          BX_CPU(which_cpu)->get_segment_base(BX_SEG_REG_CS)));
     }
     else { // Real & V86 mode
       dbg_printf("[0x" FMT_PHY_ADDRX "] %04x:%04x (%s): ",
