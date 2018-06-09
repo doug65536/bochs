@@ -2692,11 +2692,11 @@ void bx_dbg_examine_command(const char *command, const char *format, bx_bool for
             case 'u': dbg_printf("%10" FMT_64 "u ", data64); break;
             case 'o': dbg_printf("%12" FMT_64 "o ", data64); break;
             case 't': dbg_printf_binary("%s ", data64, 64); break;
-            default : dbg_printf("%08" FMT_64 "X ", data64); break;
+            default : dbg_printf("%016" FMT_64 "X ", data64); break;
           }
         else
           switch (display_format) {
-            case 'x': dbg_printf("\t0x%08" FMT_64 "x", data64); break;
+            case 'x': dbg_printf("\t0x%016" FMT_64 "x", data64); break;
             case 'd': dbg_printf("\t%" FMT_64 "d", (Bit64s) data64); break;
             case 'u': dbg_printf("\t%" FMT_64 "u", data64); break;
             case 'o': dbg_printf("\t%" FMT_64 "o", data64); break;
