@@ -144,6 +144,7 @@ Bit64u eval_value;
 %type <uval> BX_TOKEN_CREG
 %type <sval> generic_string
 %type <uval> optional_numeric
+%type <uval> operand
 %type <uval> vexpression
 %type <uval> expression
 
@@ -1382,10 +1383,8 @@ if_command:
    }
 ;
 
-/* Arithmetic expression for vbreak command */
-vexpression:
+operand:
      BX_TOKEN_NUMERIC                { $$ = $1; }
-   | generic_string                  { $$ = bx_dbg_get_symbol_value($1); free($1);}
    | BX_TOKEN_8BL_REG                { $$ = bx_dbg_get_reg8l_value($1); }
    | BX_TOKEN_8BH_REG                { $$ = bx_dbg_get_reg8h_value($1); }
    | BX_TOKEN_16B_REG                { $$ = bx_dbg_get_reg16_value($1); }
@@ -1397,6 +1396,12 @@ vexpression:
    | BX_TOKEN_REG_EIP                { $$ = bx_dbg_get_eip(); }
    | BX_TOKEN_REG_RIP                { $$ = bx_dbg_get_rip(); }
    | BX_TOKEN_CREG                   { $$ = bx_dbg_get_cr($1); }
+   | generic_string                  { $$ = bx_dbg_get_symbol_value($1); free($1);}
+;
+
+/* Arithmetic expression for vbreak command */
+vexpression:
+     operand                         { $$ = $1; }
    | vexpression '+' vexpression     { $$ = $1 + $3; }
    | vexpression '-' vexpression     { $$ = $1 - $3; }
    | vexpression '*' vexpression     { $$ = $1 * $3; }
@@ -1414,18 +1419,7 @@ vexpression:
 /* Same as vexpression but includes the ':' operator and unary '*' and '@'
 +   operators - used in most commands */
 expression:
-     BX_TOKEN_NUMERIC                { $$ = $1; }
-   | generic_string                  { $$ = bx_dbg_get_symbol_value($1); free($1);}
-   | BX_TOKEN_8BL_REG                { $$ = bx_dbg_get_reg8l_value($1); }
-   | BX_TOKEN_8BH_REG                { $$ = bx_dbg_get_reg8h_value($1); }
-   | BX_TOKEN_16B_REG                { $$ = bx_dbg_get_reg16_value($1); }
-   | BX_TOKEN_32B_REG                { $$ = bx_dbg_get_reg32_value($1); }
-   | BX_TOKEN_64B_REG                { $$ = bx_dbg_get_reg64_value($1); }
-   | BX_TOKEN_OPMASK_REG             { $$ = bx_dbg_get_opmask_value($1); }
-   | BX_TOKEN_SEGREG                 { $$ = bx_dbg_get_selector_value($1); }
-   | BX_TOKEN_REG_IP                 { $$ = bx_dbg_get_ip (); }
-   | BX_TOKEN_REG_EIP                { $$ = bx_dbg_get_eip(); }
-   | BX_TOKEN_REG_RIP                { $$ = bx_dbg_get_rip(); }
+     operand                         { $$ = $1; }
    | expression ':' expression       { $$ = bx_dbg_get_laddr ($1, $3); }
    | expression '+' expression       { $$ = $1 + $3; }
    | expression '-' expression       { $$ = $1 - $3; }
