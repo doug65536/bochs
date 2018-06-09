@@ -727,13 +727,13 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::RDPID_Ed(bxInstruction_c *i)
 #if BX_SUPPORT_MONITOR_MWAIT
 bx_bool BX_CPU_C::is_monitor(bx_phy_address begin_addr, unsigned len)
 {
-  if (! BX_CPU_THIS_PTR monitor.armed) return 0;
+  if (likely(! BX_CPU_THIS_PTR monitor.armed)) return 0;
 
   bx_phy_address monitor_begin = BX_CPU_THIS_PTR monitor.monitor_addr;
-  bx_phy_address monitor_end = monitor_begin + CACHE_LINE_SIZE - 1;
+  bx_phy_address monitor_end = monitor_begin + CACHE_LINE_SIZE;
 
   bx_phy_address end_addr = begin_addr + len;
-  if (begin_addr >= monitor_end || end_addr <= monitor_begin)
+  if (likely(begin_addr >= monitor_end || end_addr <= monitor_begin))
     return 0;
   else
     return 1;
@@ -741,14 +741,22 @@ bx_bool BX_CPU_C::is_monitor(bx_phy_address begin_addr, unsigned len)
 
 void BX_CPU_C::check_monitor(bx_phy_address begin_addr, unsigned len)
 {
-  if (is_monitor(begin_addr, len)) wakeup_monitor();
+  if (unlikely(is_monitor(begin_addr, len))) {
+    BX_INFO(("Monitor hit at " FMT_ADDRX" len=%u\n", begin_addr, len));
+    wakeup_monitor();
+  }
 }
 
 void BX_CPU_C::wakeup_monitor(void)
 {
   // wakeup from MWAIT state
-  if(BX_CPU_THIS_PTR activity_state >= BX_ACTIVITY_STATE_MWAIT)
+  if(BX_CPU_THIS_PTR activity_state >= BX_ACTIVITY_STATE_MWAIT) {
      BX_CPU_THIS_PTR activity_state = BX_ACTIVITY_STATE_ACTIVE;
+     BX_INFO(("Awakened mwait\n"));
+  } else {
+    BX_INFO(("Did not awaken mwait because activity_state==%d\n",
+             BX_CPU_THIS_PTR activity_state));
+  }
   // clear monitor
   BX_CPU_THIS_PTR monitor.reset_monitor();
 }
@@ -759,11 +767,13 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::MONITOR(bxInstruction_c *i)
 #if BX_SUPPORT_MONITOR_MWAIT
   // CPL is always 0 in real mode
   if (CPL != 0 && i->getIaOpcode() != BX_IA_MONITORX) {
-    BX_DEBUG(("%s: instruction not recognized when CPL != 0", i->getIaOpcodeNameShort()));
+    BX_DEBUG(("%s: instruction not recognized when CPL != 0",
+              i->getIaOpcodeNameShort()));
     exception(BX_UD_EXCEPTION, 0);
   }
 
-  BX_DEBUG(("%s instruction executed EAX = 0x%08x", i->getIaOpcodeNameShort(), EAX));
+  BX_DEBUG(("%s instruction executed EAX = 0x%08x",
+            i->getIaOpcodeNameShort(), EAX));
 
 #if BX_SUPPORT_VMX
   if (BX_CPU_THIS_PTR in_vmx_guest) {
@@ -785,7 +795,11 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::MONITOR(bxInstruction_c *i)
 
   bx_phy_address paddr = BX_CPU_THIS_PTR address_xlation.paddress1;
 #if BX_SUPPORT_MEMTYPE
-  if (BX_CPU_THIS_PTR address_xlation.memtype1 != BX_MEMTYPE_WB) return;
+  if (BX_CPU_THIS_PTR address_xlation.memtype1 != BX_MEMTYPE_WB) {
+    BX_INFO(("Ignoring attempt to monitor memory"
+             " that is not WB memory type\n"));
+    return;
+  }
 #endif
 
 #if BX_SUPPORT_SVM
@@ -801,7 +815,9 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::MONITOR(bxInstruction_c *i)
 
   BX_CPU_THIS_PTR monitor.arm(paddr);
 
-  BX_DEBUG(("MONITOR for phys_addr=0x" FMT_PHY_ADDRX, BX_CPU_THIS_PTR monitor.monitor_addr));
+  BX_DEBUG(("MONITOR for linear_addr=0x" FMT_ADDRX
+            " phys_addr=0x" FMT_PHY_ADDRX, eaddr,
+            BX_CPU_THIS_PTR monitor.monitor_addr));
 #endif
 
   BX_NEXT_INSTR(i);
@@ -847,7 +863,7 @@ void BX_CPP_AttrRegparmN(1) BX_CPU_C::MWAIT(bxInstruction_c *i)
   if (BX_CPU_THIS_PTR in_svm_guest) {
     if (SVM_INTERCEPT(SVM_INTERCEPT1_MWAIT_ARMED))
       if (BX_CPU_THIS_PTR monitor.armed) Svm_Vmexit(SVM_VMEXIT_MWAIT_CONDITIONAL);
-    
+
     if (SVM_INTERCEPT(SVM_INTERCEPT1_MWAIT)) Svm_Vmexit(SVM_VMEXIT_MWAIT);
   }
 #endif

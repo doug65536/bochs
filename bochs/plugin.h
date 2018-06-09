@@ -77,40 +77,52 @@ extern "C" {
 #define BX_PLUGIN_VOODOO    "voodoo"
 
 
-#define BX_REGISTER_DEVICE_DEVMODEL(a,b,c,d) pluginRegisterDeviceDevmodel(a,b,c,d)
-#define BX_UNREGISTER_DEVICE_DEVMODEL(a) pluginUnregisterDeviceDevmodel(a)
-#define PLUG_device_present(a) pluginDevicePresent(a)
+#define BX_REGISTER_DEVICE_DEVMODEL(plugin_,type_,model_,name_) \
+    pluginRegisterDeviceDevmodel((plugin_),(type_),(model_),(name_))
+#define BX_UNREGISTER_DEVICE_DEVMODEL(name_) \
+    pluginUnregisterDeviceDevmodel((name_))
+#define PLUG_device_present(name_) pluginDevicePresent((name_))
 
 #if BX_PLUGINS
 
-#define PLUG_load_plugin(name,type) {bx_load_plugin(#name,type);}
-#define PLUG_load_gui_plugin(name) bx_load_plugin(name,PLUGTYPE_GUI)
-#define PLUG_load_opt_plugin(name) bx_load_plugin(name,PLUGTYPE_OPTIONAL)
-#define PLUG_load_snd_plugin(name) bx_load_plugin(name,PLUGTYPE_SOUND)
-#define PLUG_load_net_plugin(name) bx_load_plugin(name,PLUGTYPE_NETWORK)
-#define PLUG_load_usb_plugin(name) bx_load_plugin(name,PLUGTYPE_USBDEV)
-#define PLUG_load_vga_plugin(name) bx_load_plugin(name,PLUGTYPE_VGA)
-#define PLUG_load_user_plugin(name) {bx_load_plugin(name,PLUGTYPE_USER);}
-#define PLUG_unload_plugin(name) {bx_unload_plugin(#name,1);}
-#define PLUG_unload_opt_plugin(name) bx_unload_plugin(name,1)
-#define PLUG_unload_snd_plugin(name) bx_unload_plugin(name,0)
-#define PLUG_unload_net_plugin(name) bx_unload_plugin(name,0)
-#define PLUG_unload_usb_plugin(name) bx_unload_plugin(name,0)
-#define PLUG_unload_user_plugin(name) {bx_unload_plugin(name,1);}
+#define PLUG_load_plugin(name_,type_) {bx_load_plugin((#name_),(type_));}
+#define PLUG_load_gui_plugin(name_) bx_load_plugin((name_),PLUGTYPE_GUI)
+#define PLUG_load_opt_plugin(name_) bx_load_plugin((name_),PLUGTYPE_OPTIONAL)
+#define PLUG_load_snd_plugin(name_) bx_load_plugin((name_),PLUGTYPE_SOUND)
+#define PLUG_load_net_plugin(name_) bx_load_plugin((name_),PLUGTYPE_NETWORK)
+#define PLUG_load_usb_plugin(name_) bx_load_plugin((name_),PLUGTYPE_USBDEV)
+#define PLUG_load_vga_plugin(name_) bx_load_plugin((name_),PLUGTYPE_VGA)
+#define PLUG_load_user_plugin(name_) {bx_load_plugin((name_),PLUGTYPE_USER);}
+#define PLUG_unload_plugin(name_) {bx_unload_plugin((#name_),1);}
+#define PLUG_unload_opt_plugin(name_) bx_unload_plugin((name_),1)
+#define PLUG_unload_snd_plugin(name_) bx_unload_plugin((name_),0)
+#define PLUG_unload_net_plugin(name_) bx_unload_plugin((name_),0)
+#define PLUG_unload_usb_plugin(name_) bx_unload_plugin((name_),0)
+#define PLUG_unload_user_plugin(name_) {bx_unload_plugin((name_),1);}
 
-#define DEV_register_ioread_handler(b,c,d,e,f)  pluginRegisterIOReadHandler(b,c,d,e,f)
-#define DEV_register_iowrite_handler(b,c,d,e,f) pluginRegisterIOWriteHandler(b,c,d,e,f)
-#define DEV_unregister_ioread_handler(b,c,d,e)  pluginUnregisterIOReadHandler(b,c,d,e)
-#define DEV_unregister_iowrite_handler(b,c,d,e) pluginUnregisterIOWriteHandler(b,c,d,e)
-#define DEV_register_ioread_handler_range(b,c,d,e,f,g)  pluginRegisterIOReadHandlerRange(b,c,d,e,f,g)
-#define DEV_register_iowrite_handler_range(b,c,d,e,f,g) pluginRegisterIOWriteHandlerRange(b,c,d,e,f,g)
-#define DEV_unregister_ioread_handler_range(b,c,d,e,f)  pluginUnregisterIOReadHandlerRange(b,c,d,e,f)
-#define DEV_unregister_iowrite_handler_range(b,c,d,e,f) pluginUnregisterIOWriteHandlerRange(b,c,d,e,f)
-#define DEV_register_default_ioread_handler(b,c,d,e) pluginRegisterDefaultIOReadHandler(b,c,d,e)
-#define DEV_register_default_iowrite_handler(b,c,d,e) pluginRegisterDefaultIOWriteHandler(b,c,d,e)
+#define DEV_register_ioread_handler(this_,handler_,addr_,name_,mask_) \
+    pluginRegisterIOReadHandler((this_),(handler_),(addr_),(name_),(mask_))
+#define DEV_register_iowrite_handler(this_,handler_,addr_,name_,mask_) \
+    pluginRegisterIOWriteHandler((this_),(handler_),(addr_),(name_),(mask_))
+#define DEV_unregister_ioread_handler(this_,handler_,addr_,mask_) \
+    pluginUnregisterIOReadHandler((this_),(handler_),(addr_),(mask_))
+#define DEV_unregister_iowrite_handler(this_,handler_,addr_,mask_) \
+    pluginUnregisterIOWriteHandler((this_),(handler_),(addr_),(mask_))
+#define DEV_register_ioread_handler_range(this_,handler_,saddr_,eaddr_,name_,mask_) \
+    pluginRegisterIOReadHandlerRange((this_),(handler_),(saddr_),(eaddr_),(name_),(mask_))
+#define DEV_register_iowrite_handler_range(this_,handler_,saddr_,eaddr_,name_,mask_) \
+    pluginRegisterIOWriteHandlerRange((this_),(handler_),(saddr_),(eaddr_),(name_),(mask_))
+#define DEV_unregister_ioread_handler_range(this_,handler_,saddr_,eaddr_,mask_) \
+    pluginUnregisterIOReadHandlerRange((this_),(handler_),(saddr_),(eaddr_),(mask_))
+#define DEV_unregister_iowrite_handler_range(this_,handler_,saddr_,eaddr_,mask_) \
+    pluginUnregisterIOWriteHandlerRange((this_),(handler_),(saddr_),(eaddr_),(mask_))
+#define DEV_register_default_ioread_handler(this_,handler_,name_,mask_) \
+    pluginRegisterDefaultIOReadHandler((this_),(handler_),(name_),(mask_))
+#define DEV_register_default_iowrite_handler(this_,handler_,name_,mask_) \
+    pluginRegisterDefaultIOWriteHandler((this_),(handler_),(name_),(mask_))
 
-#define DEV_register_irq(b,c) pluginRegisterIRQ(b,c)
-#define DEV_unregister_irq(b,c) pluginUnregisterIRQ(b,c)
+#define DEV_register_irq(irq_,name_) pluginRegisterIRQ((irq_),(name_))
+#define DEV_unregister_irq(irq_,name_) pluginUnregisterIRQ((irq_),(name_))
 
 #else
 
@@ -126,18 +138,28 @@ extern "C" {
 #define PLUG_unload_plugin(name) {lib##name##_LTX_plugin_fini();}
 #define PLUG_unload_opt_plugin(name) bx_unload_opt_plugin(name,1);
 
-#define DEV_register_ioread_handler(b,c,d,e,f) bx_devices.register_io_read_handler(b,c,d,e,f)
-#define DEV_register_iowrite_handler(b,c,d,e,f) bx_devices.register_io_write_handler(b,c,d,e,f)
-#define DEV_unregister_ioread_handler(b,c,d,e)  bx_devices.unregister_io_read_handler(b,c,d,e)
-#define DEV_unregister_iowrite_handler(b,c,d,e) bx_devices.unregister_io_write_handler(b,c,d,e)
-#define DEV_register_ioread_handler_range(b,c,d,e,f,g)  bx_devices.register_io_read_handler_range(b,c,d,e,f,g)
-#define DEV_register_iowrite_handler_range(b,c,d,e,f,g) bx_devices.register_io_write_handler_range(b,c,d,e,f,g)
-#define DEV_unregister_ioread_handler_range(b,c,d,e,f)  bx_devices.unregister_io_read_handler_range(b,c,d,e,f)
-#define DEV_unregister_iowrite_handler_range(b,c,d,e,f) bx_devices.unregister_io_write_handler_range(b,c,d,e,f)
-#define DEV_register_default_ioread_handler(b,c,d,e) bx_devices.register_default_io_read_handler(b,c,d,e)
-#define DEV_register_default_iowrite_handler(b,c,d,e) bx_devices.register_default_io_write_handler(b,c,d,e)
-#define DEV_register_irq(b,c) bx_devices.register_irq(b,c)
-#define DEV_unregister_irq(b,c) bx_devices.unregister_irq(b,c)
+#define DEV_register_ioread_handler(this_,handler_,addr_,name_,mask_) \
+    bx_devices.register_io_read_handler((this_),(handler_),(addr_),(name_),(mask_))
+#define DEV_register_iowrite_handler(this_,handler_,addr_,name_,mask_) \
+    bx_devices.register_io_write_handler((this_),(handler_),(addr_),(name_),(mask_))
+#define DEV_unregister_ioread_handler(this_,handler_,addr_,mask_) \
+    bx_devices.unregister_io_read_handler((this_),(handler_),(addr_),(mask_))
+#define DEV_unregister_iowrite_handler(this_,handler_,addr_,mask_) \
+    bx_devices.unregister_io_write_handler((this_),(handler_),(addr_),(mask_))
+#define DEV_register_ioread_handler_range(this_,handler_,saddr_,eaddr_,name_,mask_) \
+    bx_devices.register_io_read_handler_range((this_),(handler_),(saddr_),(eaddr_),(name_),(mask_))
+#define DEV_register_iowrite_handler_range(this_,handler_,saddr_,eaddr_,name_,mask_) \
+    bx_devices.register_io_write_handler_range((this_),(handler_),(saddr_),(eaddr_),(name_),(mask_))
+#define DEV_unregister_ioread_handler_range(this_,handler_,saddr_,eaddr_,mask_) \
+    bx_devices.unregister_io_read_handler_range((this_),(handler_),(saddr_),(eaddr_),(mask_))
+#define DEV_unregister_iowrite_handler_range(this_,handler_,saddr_,eaddr_,mask_) \
+    bx_devices.unregister_io_write_handler_range((this_),(handler_),(saddr_),(eaddr_),(mask_))
+#define DEV_register_default_ioread_handler(this_,handler_,name_,mask_) \
+    bx_devices.register_default_io_read_handler((this_),(handler_),(name_),(mask_))
+#define DEV_register_default_iowrite_handler(this_,handler_,name_,mask_) \
+    bx_devices.register_default_io_write_handler((this_),(handler_),(name_),(mask_))
+#define DEV_register_irq(irq_,name_) bx_devices.register_irq((irq_),(name_))
+#define DEV_unregister_irq(irq_,name_) bx_devices.unregister_irq((irq_),(name_))
 
 #endif // #if BX_PLUGINS
 

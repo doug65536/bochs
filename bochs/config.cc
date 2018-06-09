@@ -1049,6 +1049,7 @@ void bx_init_options()
     "none",
     "ps2",
     "imps2",
+    "imeps2",
 #if BX_SUPPORT_BUSMOUSE
     "inport",
     "bus",
@@ -1060,7 +1061,7 @@ void bx_init_options()
   };
   type = new bx_param_enum_c(mouse,
       "type", "Mouse type",
-      "The mouse type can be one of these: 'none', 'ps2', 'imps2', 'serial', 'serial_wheel'"
+      "The mouse type can be one of these: 'none', 'ps2', 'imps2', 'imeps2', 'serial', 'serial_wheel'"
 #if BX_SUPPORT_BUSMOUSE
       ", 'bus'"
 #endif

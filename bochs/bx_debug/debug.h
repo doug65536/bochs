@@ -42,6 +42,8 @@ void dbg_printf (const char *fmt, ...);
 
 #include "cpu/decoder/decoder.h"
 
+typedef struct symbol_entry_t symbol_entry_t;
+
 typedef enum
 {
   bkRegular,
@@ -84,6 +86,7 @@ Bit16u bx_dbg_get_reg16_value(unsigned reg);
 Bit32u bx_dbg_get_reg32_value(unsigned reg);
 Bit64u bx_dbg_get_reg64_value(unsigned reg);
 Bit64u bx_dbg_get_opmask_value(unsigned reg);
+bx_address bx_dbg_get_cr(unsigned int reg);
 void bx_dbg_set_reg8l_value(unsigned reg, Bit8u value);
 void bx_dbg_set_reg8h_value(unsigned reg, Bit8u value);
 void bx_dbg_set_reg16_value(unsigned reg, Bit16u value);
@@ -93,7 +96,8 @@ void bx_dbg_set_rip_value(bx_address value);
 void bx_dbg_load_segreg(unsigned reg, unsigned value);
 bx_address bx_dbg_get_laddr(Bit16u sel, bx_address ofs);
 void bx_dbg_step_over_command(void);
-void bx_dbg_trace_command(bx_bool enable);
+void bx_dbg_profile_command(char const *arg);
+void bx_dbg_trace_command(int enable);
 void bx_dbg_trace_reg_command(bx_bool enable);
 void bx_dbg_trace_mem_command(bx_bool enable);
 void bx_dbg_ptime_command(void);
@@ -172,7 +176,9 @@ void bx_dbg_calc_command(Bit64u value);
 void bx_dbg_dump_table(void);
 bx_bool bx_dbg_eval_condition(char *condition);
 
+
 // callbacks from CPU
+void bx_dbg_profile_insn(bx_address rip);
 void bx_dbg_exception(unsigned cpu, Bit8u vector, Bit16u error_code);
 void bx_dbg_interrupt(unsigned cpu, Bit8u vector, Bit16u error_code);
 void bx_dbg_halt(unsigned cpu);
@@ -192,7 +198,7 @@ int bx_dbg_show_symbolic(void);
 void bx_dbg_set_symbol_command(const char *symbol, bx_address val);
 const char* bx_dbg_symbolic_address(bx_address context, bx_address eip, bx_address base);
 int bx_dbg_symbol_command(const char* filename, bx_bool global, bx_address offset);
-void bx_dbg_info_symbols_command(const char *Symbol);
+symbol_entry_t *bx_dbg_info_symbols_command(const char *Symbol);
 int bx_dbg_lbreakpoint_symbol_command(const char *Symbol, const char *condition);
 bx_address bx_dbg_get_symbol_value(const char *Symbol);
 const char* bx_dbg_disasm_symbolic_address(bx_address eip, bx_address base);

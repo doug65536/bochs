@@ -33,7 +33,7 @@ CXXFLAGS = @CXXFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 RANLIB = @RANLIB@
-
+AR = @AR@
 
 # ===========================================================
 # end of configurable options

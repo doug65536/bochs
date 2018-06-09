@@ -107,6 +107,7 @@ typedef struct {
 
   int  baudrate;
   Bit32u databyte_usec;
+  bx_bool turbo;
 
   int  rx_timer_index;
   int  tx_timer_index;

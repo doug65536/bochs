@@ -178,8 +178,14 @@ void bx_keyb_c::init(void)
   BX_KEY_THIS s.mouse.delayed_dx      = 0;
   BX_KEY_THIS s.mouse.delayed_dy      = 0;
   BX_KEY_THIS s.mouse.delayed_dz      = 0;
-  BX_KEY_THIS s.mouse.im_request      = 0; // wheel mouse mode request
   BX_KEY_THIS s.mouse.im_mode         = 0; // wheel mouse mode
+
+  // mousewheel / 5 button mouse emulation
+  BX_KEY_THIS s.mouse.emulate_5button = 0;
+  BX_KEY_THIS s.mouse.magic_len       = 0;
+  BX_KEY_THIS s.mouse.magic_seq[0]    = 0;
+  BX_KEY_THIS s.mouse.magic_seq[1]    = 0;
+  BX_KEY_THIS s.mouse.magic_seq[2]    = 0;
 
   for (i=0; i<BX_KBD_CONTROLLER_QSIZE; i++)
     BX_KEY_THIS s.controller_Q[i] = 0;
@@ -203,7 +209,8 @@ void bx_keyb_c::init(void)
   BX_KEY_THIS statusbar_id[2] = bx_gui->register_statusitem("SCRL");
 
   if ((BX_KEY_THIS s.mouse.type == BX_MOUSE_TYPE_PS2) ||
-      (BX_KEY_THIS s.mouse.type == BX_MOUSE_TYPE_IMPS2)) {
+      (BX_KEY_THIS s.mouse.type == BX_MOUSE_TYPE_IMPS2) ||
+      (BX_KEY_THIS s.mouse.type == BX_MOUSE_TYPE_IMEPS2)) {
     DEV_register_default_mouse(this, mouse_enq_static, mouse_enabled_changed_static);
   }
 
@@ -257,8 +264,8 @@ void bx_keyb_c::register_state(void)
   BXRS_DEC_PARAM_FIELD(mouse, delayed_dx, BX_KEY_THIS s.mouse.delayed_dx);
   BXRS_DEC_PARAM_FIELD(mouse, delayed_dy, BX_KEY_THIS s.mouse.delayed_dy);
   BXRS_DEC_PARAM_FIELD(mouse, delayed_dz, BX_KEY_THIS s.mouse.delayed_dz);
-  BXRS_DEC_PARAM_FIELD(mouse, im_request, BX_KEY_THIS s.mouse.im_request);
   BXRS_PARAM_BOOL(mouse, im_mode, BX_KEY_THIS s.mouse.im_mode);
+  BXRS_PARAM_BOOL(mouse, emulate_5button, BX_KEY_THIS s.mouse.emulate_5button);
   bx_list_c *kbdbuf = new bx_list_c(list, "kbd_internal_buffer");
   BXRS_DEC_PARAM_FIELD(kbdbuf, num_elements, BX_KEY_THIS s.kbd_internal_buffer.num_elements);
   new bx_shadow_data_c(kbdbuf, "buffer", BX_KEY_THIS s.kbd_internal_buffer.buffer,
@@ -1224,7 +1231,8 @@ void bx_keyb_c::kbd_ctrl_to_mouse(Bit8u value)
   // if we are not using a ps2 mouse, some of the following commands need to return different values
   bx_bool is_ps2 = 0;
   if ((BX_KEY_THIS s.mouse.type == BX_MOUSE_TYPE_PS2) ||
-      (BX_KEY_THIS s.mouse.type == BX_MOUSE_TYPE_IMPS2)) is_ps2 = 1;
+      (BX_KEY_THIS s.mouse.type == BX_MOUSE_TYPE_IMPS2) ||
+      (BX_KEY_THIS s.mouse.type == BX_MOUSE_TYPE_IMEPS2)) is_ps2 = 1;
 
   BX_DEBUG(("MOUSE: kbd_ctrl_to_mouse(%02xh)", (unsigned) value));
   BX_DEBUG(("  enable = %u", (unsigned) BX_KEY_THIS s.mouse.enable));
@@ -1240,23 +1248,41 @@ void bx_keyb_c::kbd_ctrl_to_mouse(Bit8u value)
     BX_KEY_THIS s.kbd_controller.expecting_mouse_parameter = 0;
     switch (BX_KEY_THIS s.kbd_controller.last_mouse_command) {
       case 0xf3: // Set Mouse Sample Rate
+        // Update magic sequence detection buffer
+        BX_KEY_THIS s.mouse.magic_seq[0] = BX_KEY_THIS s.mouse.magic_seq[1];
+        BX_KEY_THIS s.mouse.magic_seq[1] = BX_KEY_THIS s.mouse.magic_seq[2];
+        BX_KEY_THIS s.mouse.magic_seq[2] = value;
+
+        if (++BX_KEY_THIS s.mouse.magic_len == 3) {
+          if (!memcmp(BX_KEY_THIS s.mouse.magic_seq, "\xC8\xC8\x50", 3)) {
+            // Magic sequence for Intellimouse explorer
+            if (BX_KEY_THIS s.mouse.type == BX_MOUSE_TYPE_IMEPS2) {
+              BX_KEY_THIS s.mouse.emulate_5button = 1;
+              BX_KEY_THIS s.mouse.im_mode = 1;
+              BX_DEBUG(("Detected 5 button mouse with wheel magic sequence"));
+            } else {
+              BX_INFO(("5 button wheel mouse mode request rejected"));
+            }
+          } else if (!memcmp(BX_KEY_THIS s.mouse.magic_seq, "\xC8\x64\x50", 3)) {
+            // Magic sequence for Intellimouse
+            if (BX_KEY_THIS s.mouse.type == BX_MOUSE_TYPE_IMPS2) {
+              BX_KEY_THIS s.mouse.emulate_5button = 0;
+              BX_KEY_THIS s.mouse.im_mode = 1;
+              BX_DEBUG(("Detected mouse with wheel magic sequence"));
+            } else {
+              BX_INFO(("wheel mouse mode request rejected"));
+            }
+          } else {
+            BX_DEBUG(("Detected unrecognized magic sequence %02x %02x %02x",
+                      BX_KEY_THIS s.mouse.magic_seq[0],
+                      BX_KEY_THIS s.mouse.magic_seq[1],
+                      BX_KEY_THIS s.mouse.magic_seq[2]));
+          }
+          BX_KEY_THIS s.mouse.magic_len = 0;
+        }
+
         BX_KEY_THIS s.mouse.sample_rate = value;
         BX_DEBUG(("mouse: sampling rate set: %d Hz", value));
-        if ((value == 200) && (!BX_KEY_THIS s.mouse.im_request)) {
-          BX_KEY_THIS s.mouse.im_request = 1;
-        } else if ((value == 100) && (BX_KEY_THIS s.mouse.im_request == 1)) {
-          BX_KEY_THIS s.mouse.im_request = 2;
-        } else if ((value == 80) && (BX_KEY_THIS s.mouse.im_request == 2)) {
-          if (BX_KEY_THIS s.mouse.type == BX_MOUSE_TYPE_IMPS2) {
-            BX_INFO(("wheel mouse mode enabled"));
-            BX_KEY_THIS s.mouse.im_mode = 1;
-          } else {
-            BX_INFO(("wheel mouse mode request rejected"));
-          }
-          BX_KEY_THIS s.mouse.im_request = 0;
-        } else {
-          BX_KEY_THIS s.mouse.im_request = 0;
-        }
         controller_enQ(0xFA, 1); // ack
         break;
 
@@ -1290,6 +1316,11 @@ void bx_keyb_c::kbd_ctrl_to_mouse(Bit8u value)
   } else {
     BX_KEY_THIS s.kbd_controller.expecting_mouse_parameter = 0;
     BX_KEY_THIS s.kbd_controller.last_mouse_command = value;
+
+    if (value != 0xf3) {
+      // Not magic sequence
+      BX_KEY_THIS s.mouse.magic_len = 0;
+    }
 
     // test for wrap mode first
     if (BX_KEY_THIS s.mouse.mode == MOUSE_MODE_WRAP) {
@@ -1354,7 +1385,9 @@ void bx_keyb_c::kbd_ctrl_to_mouse(Bit8u value)
 
       case 0xf2: // Read Device Type
         controller_enQ(0xFA, 1); // ACK
-        if (BX_KEY_THIS s.mouse.im_mode)
+        if (BX_KEY_THIS s.mouse.emulate_5button)
+          controller_enQ(0x04, 1); // Device ID (wheel z-mouse 5 button)
+        else if (BX_KEY_THIS s.mouse.im_mode)
           controller_enQ(0x03, 1); // Device ID (wheel z-mouse)
         else
           controller_enQ(0x00, 1); // Device ID (standard)
@@ -1405,7 +1438,10 @@ void bx_keyb_c::kbd_ctrl_to_mouse(Bit8u value)
           BX_KEY_THIS s.mouse.enable          = 0;
           if (BX_KEY_THIS s.mouse.im_mode)
             BX_INFO(("wheel mouse mode disabled"));
+          if (BX_KEY_THIS s.mouse.emulate_5button)
+            BX_INFO(("five button mouse mode disabled"));
           BX_KEY_THIS s.mouse.im_mode         = 0;
+          BX_KEY_THIS s.mouse.emulate_5button = 0;
           /* (mch) NT expects an ack here */
           controller_enQ(0xFA, 1); // ACK
           controller_enQ(0xAA, 1); // completion code
@@ -1430,8 +1466,13 @@ void bx_keyb_c::kbd_ctrl_to_mouse(Bit8u value)
       case 0xeb: // Read Data (send a packet when in Remote Mode)
         controller_enQ(0xFA, 1); // ACK
         // perhaps we should be adding some movement here.
-        mouse_enQ_packet(((BX_KEY_THIS s.mouse.button_status & 0x0f) | 0x08),
-          0x00, 0x00, 0x00); // bit3 of first byte always set
+        if (BX_KEY_THIS s.mouse.emulate_5button)
+          mouse_enQ_packet(((BX_KEY_THIS s.mouse.button_status & 0x07) | 0x08),
+            0x00, 0x00,
+            (BX_KEY_THIS s.mouse.button_status << 1) & 0x30); // bit3 of first byte always set
+        else
+          mouse_enQ_packet(((BX_KEY_THIS s.mouse.button_status & 0x07) | 0x08),
+            0x00, 0x00, 0x00); // bit3 of first byte always set
         //assumed we really aren't in polling mode, a rather odd assumption.
         BX_ERROR(("mouse: Warning: Read Data command partially supported."));
         break;
@@ -1459,7 +1500,8 @@ void bx_keyb_c::create_mouse_packet(bx_bool force_enq)
 
   Bit16s delta_x = BX_KEY_THIS s.mouse.delayed_dx;
   Bit16s delta_y = BX_KEY_THIS s.mouse.delayed_dy;
-  Bit8u button_state=BX_KEY_THIS s.mouse.button_status | 0x08;
+  Bit16s delta_z = BX_KEY_THIS s.mouse.delayed_dz;
+  Bit8u button_state=BX_KEY_THIS s.mouse.button_status;
 
   if (!force_enq && !delta_x && !delta_y) {
     return;
@@ -1470,7 +1512,17 @@ void bx_keyb_c::create_mouse_packet(bx_bool force_enq)
   if (delta_y>254) delta_y=254;
   if (delta_y<-254) delta_y=-254;
 
-  b1 = (button_state & 0x0f) | 0x08; // bit3 always set
+  if (BX_KEY_THIS s.mouse.emulate_5button) {
+    if (delta_z<-7) delta_z=-7;
+    if (delta_z>7) delta_z=7;
+  } else if (BX_KEY_THIS s.mouse.im_mode) {
+    if (delta_z<-15) delta_z=-15;
+    if (delta_z>15) delta_z=15;
+  } else {
+    delta_z = 0;
+  }
+
+  b1 = (button_state & 0x07) | 0x08; // bit3 always set
 
   if ((delta_x>=0) && (delta_x<=255)) {
     b2 = (Bit8u) delta_x;
@@ -1504,7 +1556,12 @@ void bx_keyb_c::create_mouse_packet(bx_bool force_enq)
     BX_KEY_THIS s.mouse.delayed_dy+=256;
   }
 
-  b4 = (Bit8u) -BX_KEY_THIS s.mouse.delayed_dz;
+  b4 = delta_z & 0x0F;
+  BX_KEY_THIS s.mouse.delayed_dz-=delta_z;
+  if (BX_KEY_THIS s.mouse.emulate_5button)
+    b4 |= (BX_KEY_THIS s.mouse.button_status << 1) & 0x30;
+  else if (BX_KEY_THIS s.mouse.im_mode)
+    b4 = (Bit8s)((Bit8u)delta_z << 4) >> 4;
 
   mouse_enQ_packet(b1, b2, b3, b4);
 }
@@ -1546,6 +1603,9 @@ void bx_keyb_c::mouse_motion(int delta_x, int delta_y, int delta_z, unsigned but
   if (BX_KEY_THIS s.mouse.enable==0)
     return;
 
+  BX_DEBUG(("GUI mouse event dx=%d dy=%d dz=%d bs=%x absxy=%d",
+            delta_x, delta_y, delta_z, button_state, absxy));
+
   // scale down the motion
   if ((delta_x < -1) || (delta_x > 1))
     delta_x /= 2;
@@ -1555,17 +1615,18 @@ void bx_keyb_c::mouse_motion(int delta_x, int delta_y, int delta_z, unsigned but
   if (!BX_KEY_THIS s.mouse.im_mode)
     delta_z = 0;
 
-  if ((delta_x==0) && (delta_y==0) && (delta_z==0) && (BX_KEY_THIS s.mouse.button_status == (button_state & 0x7))) {
+  if ((delta_x==0) && (delta_y==0) && (delta_z==0) &&
+      (BX_KEY_THIS s.mouse.button_status == (button_state & 0x1F))) {
     BX_DEBUG(("Ignoring useless mouse_motion call:"));
     BX_DEBUG(("This should be fixed in the gui code."));
     return;
   }
 
-  if ((BX_KEY_THIS s.mouse.button_status != (button_state & 0x7)) || delta_z) {
+  if ((BX_KEY_THIS s.mouse.button_status != (button_state & 0x1F)) || delta_z) {
     force_enq=1;
   }
 
-  BX_KEY_THIS s.mouse.button_status = button_state & 0x7;
+  BX_KEY_THIS s.mouse.button_status = button_state & 0x1F;
 
   if (delta_x>255) delta_x=255;
   if (delta_y>255) delta_y=255;

@@ -58,7 +58,7 @@ BX_CPU_C::write_linear_word(unsigned s, bx_address laddr, Bit16u data)
   bx_address lpf = AlignedAccessLPFOf(laddr, (1 & BX_CPU_THIS_PTR alignment_check_mask));
 #else
   bx_address lpf = LPFOf(laddr);
-#endif    
+#endif
   if (tlbEntry->lpf == lpf) {
     // See if the TLB entry privilege level allows us write access
     // from this CPL.
@@ -86,7 +86,7 @@ BX_CPU_C::write_linear_dword(unsigned s, bx_address laddr, Bit32u data)
   bx_address lpf = AlignedAccessLPFOf(laddr, (3 & BX_CPU_THIS_PTR alignment_check_mask));
 #else
   bx_address lpf = LPFOf(laddr);
-#endif    
+#endif
   if (tlbEntry->lpf == lpf) {
     // See if the TLB entry privilege level allows us write access
     // from this CPL.
@@ -114,7 +114,7 @@ BX_CPU_C::write_linear_qword(unsigned s, bx_address laddr, Bit64u data)
   bx_address lpf = AlignedAccessLPFOf(laddr, (7 & BX_CPU_THIS_PTR alignment_check_mask));
 #else
   bx_address lpf = LPFOf(laddr);
-#endif    
+#endif
   if (tlbEntry->lpf == lpf) {
     // See if the TLB entry privilege level allows us write access
     // from this CPL.
@@ -310,13 +310,16 @@ BX_CPU_C::write_linear_zmmword_aligned(unsigned s, bx_address laddr, const BxPac
   void BX_CPP_AttrRegparmN(2)
 BX_CPU_C::tickle_read_linear(unsigned s, bx_address laddr)
 {
+  BX_CPU_THIS_PTR address_xlation.paddress1 = 0;
+  BX_CPU_THIS_PTR address_xlation.pages     = 0;
+
   bx_address lpf = LPFOf(laddr);
   bx_TLB_entry *tlbEntry = BX_TLB_ENTRY_OF(laddr, 0);
-  if (tlbEntry->lpf == lpf) {
-    // See if the TLB entry privilege level allows us read access
-    // from this CPL.
-    if (isReadOK(tlbEntry, USER_PL)) return;
-  }
+//  if (tlbEntry->lpf == lpf) {
+//    // See if the TLB entry privilege level allows us read access
+//    // from this CPL.
+//    if (isReadOK(tlbEntry, USER_PL)) return;
+//  }
 
 #if BX_SUPPORT_X86_64
   if (! IsCanonical(laddr)) {
@@ -373,7 +376,7 @@ BX_CPU_C::read_linear_word(unsigned s, bx_address laddr)
   bx_address lpf = AlignedAccessLPFOf(laddr, (1 & BX_CPU_THIS_PTR alignment_check_mask));
 #else
   bx_address lpf = LPFOf(laddr);
-#endif    
+#endif
   if (tlbEntry->lpf == lpf) {
     // See if the TLB entry privilege level allows us read access
     // from this CPL.
@@ -403,7 +406,7 @@ BX_CPU_C::read_linear_dword(unsigned s, bx_address laddr)
   bx_address lpf = AlignedAccessLPFOf(laddr, (3 & BX_CPU_THIS_PTR alignment_check_mask));
 #else
   bx_address lpf = LPFOf(laddr);
-#endif    
+#endif
   if (tlbEntry->lpf == lpf) {
     // See if the TLB entry privilege level allows us read access
     // from this CPL.
@@ -433,7 +436,7 @@ BX_CPU_C::read_linear_qword(unsigned s, bx_address laddr)
   bx_address lpf = AlignedAccessLPFOf(laddr, (7 & BX_CPU_THIS_PTR alignment_check_mask));
 #else
   bx_address lpf = LPFOf(laddr);
-#endif    
+#endif
   if (tlbEntry->lpf == lpf) {
     // See if the TLB entry privilege level allows us read access
     // from this CPL.
@@ -660,7 +663,7 @@ BX_CPU_C::read_RMW_linear_word(unsigned s, bx_address laddr)
   bx_address lpf = AlignedAccessLPFOf(laddr, (1 & BX_CPU_THIS_PTR alignment_check_mask));
 #else
   bx_address lpf = LPFOf(laddr);
-#endif    
+#endif
   if (tlbEntry->lpf == lpf) {
     // See if the TLB entry privilege level allows us write access
     // from this CPL.
@@ -696,7 +699,7 @@ BX_CPU_C::read_RMW_linear_dword(unsigned s, bx_address laddr)
   bx_address lpf = AlignedAccessLPFOf(laddr, (3 & BX_CPU_THIS_PTR alignment_check_mask));
 #else
   bx_address lpf = LPFOf(laddr);
-#endif    
+#endif
   if (tlbEntry->lpf == lpf) {
     // See if the TLB entry privilege level allows us write access
     // from this CPL.
@@ -732,7 +735,7 @@ BX_CPU_C::read_RMW_linear_qword(unsigned s, bx_address laddr)
   bx_address lpf = AlignedAccessLPFOf(laddr, (7 & BX_CPU_THIS_PTR alignment_check_mask));
 #else
   bx_address lpf = LPFOf(laddr);
-#endif    
+#endif
   if (tlbEntry->lpf == lpf) {
     // See if the TLB entry privilege level allows us write access
     // from this CPL.
@@ -767,6 +770,9 @@ BX_CPU_C::write_RMW_linear_byte(Bit8u val8)
 
   if (BX_CPU_THIS_PTR address_xlation.pages > 2) {
     // Pages > 2 means it stores a host address for direct access.
+#if BX_SUPPORT_MONITOR_MWAIT
+    bx_mem.check_monitor(address_xlation.paddress1, 1);
+#endif
     Bit8u *hostAddr = (Bit8u *) BX_CPU_THIS_PTR address_xlation.pages;
     *hostAddr = val8;
   }
@@ -781,6 +787,9 @@ BX_CPU_C::write_RMW_linear_word(Bit16u val16)
 {
   if (BX_CPU_THIS_PTR address_xlation.pages > 2) {
     // Pages > 2 means it stores a host address for direct access.
+#if BX_SUPPORT_MONITOR_MWAIT
+    bx_mem.check_monitor(address_xlation.paddress1, 2);
+#endif
     Bit16u *hostAddr = (Bit16u *) BX_CPU_THIS_PTR address_xlation.pages;
     WriteHostWordToLittleEndian(hostAddr, val16);
     BX_DBG_PHY_MEMORY_ACCESS(BX_CPU_ID,
@@ -821,6 +830,9 @@ BX_CPU_C::write_RMW_linear_dword(Bit32u val32)
 {
   if (BX_CPU_THIS_PTR address_xlation.pages > 2) {
     // Pages > 2 means it stores a host address for direct access.
+#if BX_SUPPORT_MONITOR_MWAIT
+    bx_mem.check_monitor(address_xlation.paddress1, 4);
+#endif
     Bit32u *hostAddr = (Bit32u *) BX_CPU_THIS_PTR address_xlation.pages;
     WriteHostDWordToLittleEndian(hostAddr, val32);
     BX_DBG_PHY_MEMORY_ACCESS(BX_CPU_ID,
@@ -871,6 +883,9 @@ BX_CPU_C::write_RMW_linear_qword(Bit64u val64)
 {
   if (BX_CPU_THIS_PTR address_xlation.pages > 2) {
     // Pages > 2 means it stores a host address for direct access.
+#if BX_SUPPORT_MONITOR_MWAIT
+    bx_mem.check_monitor(address_xlation.paddress1, 4);
+#endif
     Bit64u *hostAddr = (Bit64u *) BX_CPU_THIS_PTR address_xlation.pages;
     WriteHostQWordToLittleEndian(hostAddr, val64);
     BX_DBG_PHY_MEMORY_ACCESS(BX_CPU_ID,
@@ -969,7 +984,7 @@ void BX_CPU_C::write_RMW_linear_dqword(Bit64u hi, Bit64u lo)
   else {
     BX_ASSERT(BX_CPU_THIS_PTR address_xlation.pages == 1);
   }
-  
+
   write_RMW_linear_qword(hi);
 }
 
@@ -988,7 +1003,7 @@ void BX_CPU_C::write_new_stack_word(bx_address laddr, unsigned curr_pl, Bit16u d
   bx_address lpf = AlignedAccessLPFOf(laddr, (1 & BX_CPU_THIS_PTR alignment_check_mask));
 #else
   bx_address lpf = LPFOf(laddr);
-#endif    
+#endif
   if (tlbEntry->lpf == lpf) {
     // See if the TLB entry privilege level allows us write access
     // from this CPL.
@@ -1016,7 +1031,7 @@ void BX_CPU_C::write_new_stack_dword(bx_address laddr, unsigned curr_pl, Bit32u 
   bx_address lpf = AlignedAccessLPFOf(laddr, (3 & BX_CPU_THIS_PTR alignment_check_mask));
 #else
   bx_address lpf = LPFOf(laddr);
-#endif    
+#endif
   if (tlbEntry->lpf == lpf) {
     // See if the TLB entry privilege level allows us write access
     // from this CPL.
@@ -1044,7 +1059,7 @@ void BX_CPU_C::write_new_stack_qword(bx_address laddr, unsigned curr_pl, Bit64u 
   bx_address lpf = AlignedAccessLPFOf(laddr, (7 & BX_CPU_THIS_PTR alignment_check_mask));
 #else
   bx_address lpf = LPFOf(laddr);
-#endif    
+#endif
   if (tlbEntry->lpf == lpf) {
     // See if the TLB entry privilege level allows us write access
     // from this CPL.
@@ -1085,7 +1100,7 @@ accessOK:
   // add error code when segment violation occurs when pushing into new stack
   if (!write_virtual_checks(seg, offset, 2)) {
     BX_ERROR(("write_new_stack_word(): segment limit violation"));
-    exception(BX_SS_EXCEPTION, 
+    exception(BX_SS_EXCEPTION,
          seg->selector.rpl != CPL ? (seg->selector.value & 0xfffc) : 0);
   }
   goto accessOK;
@@ -1112,7 +1127,7 @@ accessOK:
   // add error code when segment violation occurs when pushing into new stack
   if (!write_virtual_checks(seg, offset, 4)) {
     BX_ERROR(("write_new_stack_dword(): segment limit violation"));
-    exception(BX_SS_EXCEPTION, 
+    exception(BX_SS_EXCEPTION,
          seg->selector.rpl != CPL ? (seg->selector.value & 0xfffc) : 0);
   }
   goto accessOK;
@@ -1139,7 +1154,7 @@ accessOK:
   // add error code when segment violation occurs when pushing into new stack
   if (!write_virtual_checks(seg, offset, 8)) {
     BX_ERROR(("write_new_stack_qword(): segment limit violation"));
-    exception(BX_SS_EXCEPTION, 
+    exception(BX_SS_EXCEPTION,
         seg->selector.rpl != CPL ? (seg->selector.value & 0xfffc) : 0);
   }
   goto accessOK;

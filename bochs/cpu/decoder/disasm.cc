@@ -26,6 +26,8 @@
 #include "../cpu.h"
 #endif
 
+#include "disasm/disasm.h"
+
 #include "instr.h"
 #include "decoder.h"
 #include "fetchdecode.h"
@@ -190,7 +192,7 @@ char *resolve_memsize(char *disbufptr, const bxInstruction_c *i, unsigned src_in
     case 4:
       disbufptr = dis_sprintf(disbufptr, "dword ptr ");
       break;
-        
+
     case 8:
       disbufptr = dis_sprintf(disbufptr, "qword ptr ");
       break;
@@ -250,7 +252,7 @@ char *resolve_memsize(char *disbufptr, const bxInstruction_c *i, unsigned src_in
         disbufptr = dis_sprintf(disbufptr, "xmmword ptr ");
       break;
 
-    default: 
+    default:
       break;
     }
   }
@@ -566,7 +568,7 @@ char *disasm_implicit_src(char *disbufptr, const bxInstruction_c *i, unsigned sr
   default:
     disbufptr = dis_sprintf(disbufptr, "(unknown implicit source for disasm %d)", src_type);
   }
- 
+
   return disbufptr;
 }
 
@@ -623,7 +625,7 @@ char* disasm(char *disbufptr, const bxInstruction_c *i, bx_address cs_base, bx_a
 
   // special case: MOVLPS opcode in reg form is MOVHLPS
   //               MOVHPS opcode in reg form is MOVLHPS
-  if (i->modC0() && (i->getIaOpcode() == BX_IA_MOVLPS_VpsMq 
+  if (i->modC0() && (i->getIaOpcode() == BX_IA_MOVLPS_VpsMq
 #if BX_SUPPORT_AVX
        || i->getIaOpcode() == BX_IA_V128_VMOVLPS_VpsHpsMq
 #if BX_SUPPORT_EVEX

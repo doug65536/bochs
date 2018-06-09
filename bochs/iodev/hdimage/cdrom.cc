@@ -258,6 +258,11 @@ bx_bool BX_CPP_AttrRegparmN(3) cdrom_base_c::read_block(Bit8u* buf, Bit32u lba, 
       BX_PANIC(("cdrom: read_block: lseek returned error."));
     } else {
       n = read(fd, (char*) buf1, BX_CD_FRAMESIZE);
+
+      if (n != BX_CD_FRAMESIZE) {
+        BX_ERROR(("cdrom: read_block failed at offset 0x"FMT_LL"x\n",
+                  (Bit64u)lba * BX_CD_FRAMESIZE));
+      }
     }
   } while ((n != BX_CD_FRAMESIZE) && (--try_count > 0));
 

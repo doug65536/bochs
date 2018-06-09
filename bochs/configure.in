@@ -2232,7 +2232,7 @@ SLASH="/"
 CXXFP=""
 CFP=""
 OFP="-o "
-MAKELIB="ar rv \$@"
+MAKELIB="\$(AR) rv \$@"
 RMCOMMAND="rm -f "
 # first define link variables without libtool
 LINK="\$(CXX) -o \$@ \$(CXXFLAGS) \$(LDFLAGS)"
@@ -3238,6 +3238,9 @@ AC_SUBST(INSTALL_PLUGINS_VAR)
 
 AC_PATH_PROG(GZIP, gzip)
 AC_PATH_PROG(TAR, tar)
+
+AC_SUBST(RANLIB)
+AC_SUBST(AR)
 
 AC_OUTPUT(Makefile iodev/Makefile iodev/display/Makefile iodev/hdimage/Makefile \
 	 iodev/usb/Makefile iodev/network/Makefile iodev/sound/Makefile \

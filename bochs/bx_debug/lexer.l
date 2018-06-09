@@ -7,8 +7,8 @@
 #include <string.h>
 
 #ifdef WIN32
-	#include <io.h>
-	#define YY_NO_UNISTD_H
+    #include <io.h>
+    #define YY_NO_UNISTD_H
 #endif
 
 #include "debug.h"
@@ -61,6 +61,7 @@ static unsigned lex_input_size = 0;
 set             { bxlval.sval = strdup(bxtext); return(BX_TOKEN_SET); }
 on              { bxlval.bval = 1; return(BX_TOKEN_ON); }
 off             { bxlval.bval = 0; return(BX_TOKEN_OFF); }
+ram             { bxlval.bval = 1; return(BX_TOKEN_RAM); }
 crc             { bxlval.sval = strdup(bxtext); return(BX_TOKEN_CRC); }
 c               |
 cont            |
@@ -125,6 +126,11 @@ hex             { bxlval.sval = strdup(bxtext); return(BX_TOKEN_HEX); }
 instrument      { bxlval.sval = strdup(bxtext); return(BX_TOKEN_INSTRUMENT); }
 stop            { bxlval.sval = strdup(bxtext); return(BX_TOKEN_STOP); }
 doit            { bxlval.sval = strdup(bxtext); return(BX_TOKEN_DOIT); }
+reset           { bxlval.sval = strdup(bxtext); return(BX_TOKEN_RESET); }
+detail          { bxlval.sval = strdup(bxtext); return(BX_TOKEN_DETAIL); }
+all             { bxlval.sval = strdup(bxtext); return(BX_TOKEN_ALL); }
+none            { bxlval.sval = strdup(bxtext); return(BX_TOKEN_NONE); }
+profile         { bxlval.sval = strdup(bxtext); return(BX_TOKEN_PROFILE); }
 trace           { bxlval.sval = strdup(bxtext); return(BX_TOKEN_TRACE); }
 trace-reg   	{ bxlval.sval = strdup(bxtext); return(BX_TOKEN_TRACEREG); }
 trace-mem   	{ bxlval.sval = strdup(bxtext); return(BX_TOKEN_TRACEMEM); }
@@ -150,7 +156,6 @@ where           { bxlval.sval = strdup(bxtext); return(BX_TOKEN_WHERE); }
 print-string    { bxlval.sval = strdup(bxtext); return(BX_TOKEN_PRINT_STRING); }
 page            { bxlval.sval = strdup(bxtext); return(BX_TOKEN_PAGE); }
 device          { bxlval.sval = strdup(bxtext); return(BX_TOKEN_DEVICE); }
-all             { bxlval.sval = strdup(bxtext); return(BX_TOKEN_ALL); }
 al              { bxlval.uval = BX_8BIT_REG_AL; return(BX_TOKEN_8BL_REG);}
 bl              { bxlval.uval = BX_8BIT_REG_BL; return(BX_TOKEN_8BL_REG);}
 cl              { bxlval.uval = BX_8BIT_REG_CL; return(BX_TOKEN_8BL_REG);}
@@ -228,6 +233,11 @@ ss              { bxlval.uval = BX_SEG_REG_SS; return(BX_TOKEN_SS); }
 ds              { bxlval.uval = BX_SEG_REG_DS; return(BX_TOKEN_DS); }
 fs              { bxlval.uval = BX_SEG_REG_FS; return(BX_TOKEN_FS); }
 gs              { bxlval.uval = BX_SEG_REG_GS; return(BX_TOKEN_GS); }
+cr0             { bxlval.uval = 0; return(BX_TOKEN_CR0); }
+cr2             { bxlval.uval = 2; return(BX_TOKEN_CR2); }
+cr3             { bxlval.uval = 3; return(BX_TOKEN_CR3); }
+cr4             { bxlval.uval = 4; return(BX_TOKEN_CR4); }
+cr8             { bxlval.uval = 8; return(BX_TOKEN_CR8); }
 k[0-7]          { EVEX_OPMASK_REG(bxtext[1] - '0'); }
 flags|eflags    { bxlval.uval = 0; return (BX_TOKEN_FLAGS); }
 xml             { bxlval.sval = strdup(bxtext); return(BX_TOKEN_XML); }
@@ -262,7 +272,7 @@ calc            { bxlval.sval = strdup(bxtext); return(BX_TOKEN_CALC); }
 0[0-7]+         { bxlval.uval = strtoull(bxtext, NULL, 8); return(BX_TOKEN_NUMERIC); }
 [0-9]+          { bxlval.uval = strtoull(bxtext, NULL, 10); return(BX_TOKEN_NUMERIC); }
 $[a-zA-Z_][a-zA-Z0-9_]* { bxlval.sval = strdup(bxtext); return(BX_TOKEN_SYMBOLNAME); }
-[A-Za-z_][A-Za-z0-9_]*  { bxlval.sval = strdup(bxtext); return(BX_TOKEN_GENERIC); }
+[A-Za-z_][A-Za-z0-9_:()]*  { bxlval.sval = strdup(bxtext); return(BX_TOKEN_GENERIC); }
 <*>";"          { return ('\n'); }
 <*>\n           { return ('\n'); }
 [#][^\n]*    ; // eat up comments '//'

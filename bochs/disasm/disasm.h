@@ -554,4 +554,16 @@ public:
   void Jd(const x86_insn *insn);
 };
 
+
+// Register name lookup tables
+extern const char *intel_general_16bit_regname[];
+extern const char *intel_general_32bit_regname[];
+extern const char *intel_general_64bit_regname[];
+#if BX_SUPPORT_X86_64
+extern const char *intel_general_8bit_regname_rex[];
+#endif
+extern const char *intel_general_8bit_regname[];
+extern const char *intel_segment_name[];
+extern const char *intel_vector_reg_name[];
+
 #endif

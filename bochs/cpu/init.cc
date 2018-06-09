@@ -16,7 +16,7 @@
 //
 //  You should have received a copy of the GNU Lesser General Public
 //  License along with this library; if not, write to the Free Software
-//  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+//  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 /////////////////////////////////////////////////////////////////////////
 
@@ -953,6 +953,7 @@ void BX_CPU_C::reset(unsigned source)
 #if BX_DEBUGGER
   BX_CPU_THIS_PTR stop_reason = STOP_NO_REASON;
   BX_CPU_THIS_PTR magic_break = 0;
+  BX_CPU_THIS_PTR profile = 0;
   BX_CPU_THIS_PTR trace = 0;
   BX_CPU_THIS_PTR trace_reg = 0;
   BX_CPU_THIS_PTR trace_mem = 0;

@@ -1590,11 +1590,13 @@ int redolog_t::create(int filedes, const char* type, Bit64u size)
   }
 
   // Write header
-  ::write(fd, &header, dtoh32(header.standard.header));
+  if (::write(fd, &header, dtoh32(header.standard.header)) < 0)
+    return -1;
 
   // Write catalog
   // FIXME could mmap
-  ::write(fd, catalog, dtoh32(header.specific.catalog) * sizeof (Bit32u));
+  if (::write(fd, catalog, dtoh32(header.specific.catalog) * sizeof (Bit32u)) < 0)
+    return -1;
 
   return 0;
 }

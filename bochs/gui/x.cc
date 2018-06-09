@@ -1036,12 +1036,12 @@ void bx_x_gui_c::handle_events(void)
           mouse_update = 0;
           break;
         case Button4:
-          current_z = 1;
+          mouse_button_state &= ~0x08;
           send_mouse_status();
           mouse_update = 0;
           break;
         case Button5:
-          current_z = -1;
+          mouse_button_state &= ~0x10;
           send_mouse_status();
           mouse_update = 0;
           break;
