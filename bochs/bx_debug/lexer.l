@@ -233,6 +233,11 @@ ss              { bxlval.uval = BX_SEG_REG_SS; return(BX_TOKEN_SS); }
 ds              { bxlval.uval = BX_SEG_REG_DS; return(BX_TOKEN_DS); }
 fs              { bxlval.uval = BX_SEG_REG_FS; return(BX_TOKEN_FS); }
 gs              { bxlval.uval = BX_SEG_REG_GS; return(BX_TOKEN_GS); }
+cr0             { bxlval.uval = 0; return(BX_TOKEN_CR0); }
+cr2             { bxlval.uval = 2; return(BX_TOKEN_CR2); }
+cr3             { bxlval.uval = 3; return(BX_TOKEN_CR3); }
+cr4             { bxlval.uval = 4; return(BX_TOKEN_CR4); }
+cr8             { bxlval.uval = 8; return(BX_TOKEN_CR8); }
 k[0-7]          { EVEX_OPMASK_REG(bxtext[1] - '0'); }
 flags|eflags    { bxlval.uval = 0; return (BX_TOKEN_FLAGS); }
 xml             { bxlval.sval = strdup(bxtext); return(BX_TOKEN_XML); }

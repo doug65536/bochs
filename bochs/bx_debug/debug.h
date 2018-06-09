@@ -86,6 +86,7 @@ Bit16u bx_dbg_get_reg16_value(unsigned reg);
 Bit32u bx_dbg_get_reg32_value(unsigned reg);
 Bit64u bx_dbg_get_reg64_value(unsigned reg);
 Bit64u bx_dbg_get_opmask_value(unsigned reg);
+bx_address bx_dbg_get_cr(unsigned int reg);
 void bx_dbg_set_reg8l_value(unsigned reg, Bit8u value);
 void bx_dbg_set_reg8h_value(unsigned reg, Bit8u value);
 void bx_dbg_set_reg16_value(unsigned reg, Bit16u value);

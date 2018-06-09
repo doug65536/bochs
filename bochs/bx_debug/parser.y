@@ -33,6 +33,11 @@ Bit64u eval_value;
 %token <uval> BX_TOKEN_DS
 %token <uval> BX_TOKEN_FS
 %token <uval> BX_TOKEN_GS
+%token <uval> BX_TOKEN_CR0
+%token <uval> BX_TOKEN_CR2
+%token <uval> BX_TOKEN_CR3
+%token <uval> BX_TOKEN_CR4
+%token <uval> BX_TOKEN_CR8
 %token <uval> BX_TOKEN_OPMASK_REG
 %token <uval> BX_TOKEN_FLAGS
 %token <bval> BX_TOKEN_ON
@@ -136,6 +141,7 @@ Bit64u eval_value;
 %token BX_TOKEN_REG_IP
 %token BX_TOKEN_REG_EIP
 %token BX_TOKEN_REG_RIP
+%type <uval> BX_TOKEN_CREG
 %type <sval> generic_string
 %type <uval> optional_numeric
 %type <uval> vexpression
@@ -233,6 +239,14 @@ BX_TOKEN_SEGREG:
     | BX_TOKEN_FS
     | BX_TOKEN_GS
     { $$=$1; }
+;
+
+BX_TOKEN_CREG:
+      BX_TOKEN_CR0
+    | BX_TOKEN_CR2
+    | BX_TOKEN_CR3
+    | BX_TOKEN_CR4
+    | BX_TOKEN_CR8
 ;
 
 generic_string:
@@ -1382,6 +1396,7 @@ vexpression:
    | BX_TOKEN_REG_IP                 { $$ = bx_dbg_get_ip (); }
    | BX_TOKEN_REG_EIP                { $$ = bx_dbg_get_eip(); }
    | BX_TOKEN_REG_RIP                { $$ = bx_dbg_get_rip(); }
+   | BX_TOKEN_CREG                   { $$ = bx_dbg_get_cr($1); }
    | vexpression '+' vexpression     { $$ = $1 + $3; }
    | vexpression '-' vexpression     { $$ = $1 - $3; }
    | vexpression '*' vexpression     { $$ = $1 * $3; }

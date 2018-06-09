@@ -4201,6 +4201,22 @@ Bit16u bx_dbg_get_selector_value(unsigned int seg_no)
   return sreg.sel;
 }
 
+bx_address bx_dbg_get_cr(unsigned int cr_no)
+{
+  switch (cr_no) {
+  case 0:
+    return BX_CPU(dbg_cpu)->cr0.get32();
+  case 2:
+    return BX_CPU(dbg_cpu)->cr2;
+  case 3:
+    return BX_CPU(dbg_cpu)->cr3;
+  case 4:
+    return BX_CPU(dbg_cpu)->cr4.get32();
+  case 8:
+    return BX_CPU(dbg_cpu)->get_cr8();
+  }
+}
+
 Bit16u bx_dbg_get_ip(void)
 {
   return BX_CPU(dbg_cpu)->get_ip();
